@@ -1,10 +1,23 @@
-import { createBrowserRouter, RouterProvider } from "react-router-dom"
-import IndexPage from "./pages/IndexPage/IndexPage"
+import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import { getFirebaseApp } from './libs/FirebaseApp'
+import CastPage from './pages/CastPage/CastPage'
+import LoginPage from './pages/LoginPage/LoginPage'
+import PocPage from './pages/PocPage/PocPage'
+
+getFirebaseApp()
 
 const router = createBrowserRouter([
   {
-    index: true,
-    element: <IndexPage />
+    path: 'cast/:folderId',
+    element: <CastPage />
+  },
+  {
+    path: 'poc',
+    element: <PocPage />
+  },
+  {
+    path: 'login',
+    element: <LoginPage />
   }
 ])
 

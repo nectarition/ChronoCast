@@ -16,6 +16,7 @@
     "@stylistic/eslint-plugin-jsx": "^4.2.0",
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-react": "^7.37.5",
+    "firebase": "^11.6.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.5.3",
