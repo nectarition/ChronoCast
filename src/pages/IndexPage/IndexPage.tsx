@@ -6,4 +6,4 @@ const IndexPage: React.FC = () => {
   )
 }
 
-export default IndexPage;
+export default IndexPage
