@@ -11,7 +11,7 @@ const router = createBrowserRouter([
     element: <CastPage />
   },
   {
-    path: 'login',
+    index: true,
     element: <LoginPage />
   }
 ])

@@ -44,7 +44,6 @@ const useCast = (): IUseCast => {
 
   const getSourceURLAsync = useCallback(async (folderId: string, sourceId: string) => {
     const sourceRef = ref(storage, `sources/${folderId}/${sourceId}`)
-    console.log(`sources/${folderId}/${sourceId}`)
     const url = await getDownloadURL(sourceRef)
     return url
   }, [])
