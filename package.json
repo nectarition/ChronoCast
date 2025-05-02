@@ -12,6 +12,7 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
+    "@phosphor-icons/react": "^2.1.7",
     "@stylistic/eslint-plugin": "^4.2.0",
     "@stylistic/eslint-plugin-jsx": "^4.2.0",
     "eslint-plugin-import": "^2.31.0",

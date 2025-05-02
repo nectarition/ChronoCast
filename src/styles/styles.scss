@@ -1,6 +1,10 @@
 // google font から m plus 1 をインポート
 @import url('https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@400;700&display=swap');
 
+* {
+  box-sizing: border-box;
+}
+
 html, body, #root {
   margin: 0;
   padding: 0;
