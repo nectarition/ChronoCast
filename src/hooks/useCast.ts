@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { collection, deleteDoc, doc, getDocs, setDoc } from 'firebase/firestore'
+import { collection, deleteDoc, doc, getDocs, query, setDoc, where } from 'firebase/firestore'
 import { deleteObject, getDownloadURL, ref, uploadBytes } from 'firebase/storage'
 import { Schedule, ScheduleDocument, Source, SourceDocument } from '../@types'
 import { scheduleConverter, sourceConverter } from '../libs/converters'
@@ -10,10 +10,10 @@ interface IUseCast {
   uploadSourceAsync: (folderId: string, sourceId: string, file: File) => Promise<void>
   deleteSourceAsync: (folderId: string, sourceId: string) => Promise<void>
   getSourceURLAsync: (folderId: string, sourceId: string) => Promise<string>
-  getSourcesAsync: () => Promise<SourceDocument[]>
+  getSourcesByFolderIdAsync: (folderId: string) => Promise<SourceDocument[]>
   addScheduleAsync: (schedule: Schedule) => Promise<string>
   deleteScheduleAsync: (scheduleId: string) => Promise<void>
-  getSchedulesAsync: () => Promise<ScheduleDocument[]>
+  getSchedulesByFolderIdAsync: (folderId: string) => Promise<ScheduleDocument[]>
 }
 
 const useCast = (): IUseCast => {
@@ -48,10 +48,11 @@ const useCast = (): IUseCast => {
     return url
   }, [])
 
-  const getSourcesAsync = useCallback(async () => {
+  const getSourcesByFolderIdAsync = useCallback(async (folderId: string) => {
     const sourcesRef = collection(db, 'sources')
       .withConverter(sourceConverter)
-    const sourcesDocs = await getDocs(sourcesRef)
+    const sourcesQuery = query(sourcesRef, where('folderId', '==', folderId))
+    const sourcesDocs = await getDocs(sourcesQuery)
     const sources = sourcesDocs.docs.map(d => d.data())
     return sources
   }, [])
@@ -68,10 +69,11 @@ const useCast = (): IUseCast => {
     await deleteDoc(scheduleRef)
   }, [])
 
-  const getSchedulesAsync = useCallback(async () => {
+  const getSchedulesByFolderIdAsync = useCallback(async (folderId: string) => {
     const schedulesRef = collection(db, 'schedules')
       .withConverter(scheduleConverter)
-    const schedulesDocs = await getDocs(schedulesRef)
+    const schedulesQuery = query(schedulesRef, where('folderId', '==', folderId))
+    const schedulesDocs = await getDocs(schedulesQuery)
     const schedules = schedulesDocs.docs.map(d => d.data())
     return schedules
   }, [])
@@ -81,10 +83,10 @@ const useCast = (): IUseCast => {
     uploadSourceAsync,
     deleteSourceAsync,
     getSourceURLAsync,
-    getSourcesAsync,
+    getSourcesByFolderIdAsync,
     addScheduleAsync,
     deleteScheduleAsync,
-    getSchedulesAsync
+    getSchedulesByFolderIdAsync
   }
 }
 

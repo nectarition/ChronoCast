@@ -19,8 +19,8 @@ const CastPage: React.FC = () => {
   const navigate = useNavigate()
 
   const {
-    getSourcesAsync,
-    getSchedulesAsync,
+    getSourcesByFolderIdAsync,
+    getSchedulesByFolderIdAsync,
     addScheduleAsync,
     addSourceAsync,
     deleteScheduleAsync,
@@ -231,7 +231,8 @@ const CastPage: React.FC = () => {
   }, [])
 
   useEffect(() => {
-    getSourcesAsync()
+    if (!folderId) return
+    getSourcesByFolderIdAsync(folderId)
       .then(async fetchedSources => {
         const sourcesWithUrls = await Promise.all(fetchedSources.map(async source => {
           const url = await getSourceURLAsync(source.folderId, source.id)
@@ -244,12 +245,12 @@ const CastPage: React.FC = () => {
         setSources(sourcesWithUrls)
       })
       .catch(err => { throw err })
-  }, [])
+  }, [folderId])
 
   useEffect(() => {
-    if (!initialSources || schedules?.length) return
+    if (!folderId || !initialSources || schedules?.length) return
 
-    getSchedulesAsync()
+    getSchedulesByFolderIdAsync(folderId)
       .then(async fetchedSchedules => {
         const schedulesWithTimeIds = await Promise.all(fetchedSchedules.map(async schedule => {
           const timeSpan = schedule.scheduledAt.getTime() - new Date().getTime()
@@ -425,14 +426,14 @@ const CastPage: React.FC = () => {
         <fieldset>
           <legend>音源追加</legend>
           <input
+            accept="audio/mp3"
+            onChange={e => setFile(e.target.files?.[0])}
+            type="file" />
+          <input
             onChange={e => setEditableSource(s => ({ ...s, name: e.target.value }))}
             placeholder="音源名"
             type="text"
             value={editableSource.name} />
-          <input
-            accept="audio/mp3"
-            onChange={e => setFile(e.target.files?.[0])}
-            type="file" />
           <button onClick={handleAddSource}>音源追加</button>
         </fieldset>
 
