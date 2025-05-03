@@ -248,7 +248,7 @@ const CastPage: React.FC = () => {
   }, [folderId])
 
   useEffect(() => {
-    if (!folderId || !initialSources || schedules?.length) return
+    if (!folderId || !initialSources) return
 
     getSchedulesByFolderIdAsync(folderId)
       .then(async fetchedSchedules => {
@@ -285,7 +285,7 @@ const CastPage: React.FC = () => {
         setSchedules(schedulesWithTimeIds)
       })
       .catch(err => { throw err })
-  }, [initialSources, schedules])
+  }, [folderId, initialSources])
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -361,6 +361,11 @@ const CastPage: React.FC = () => {
 
         <fieldset>
           <legend>スケジュール追加</legend>
+          <input
+            onChange={e => setEditableSchedule(s => ({ ...s, scheduledAt: e.target.value }))}
+            placeholder="Scheduled Time"
+            type="datetime-local"
+            value={editableSchedule.scheduledAt} />
           <select
             onChange={e => setEditableSchedule(s => ({ ...s, sourceId: e.target.value }))}
             value={editableSchedule.sourceId}>
@@ -374,11 +379,6 @@ const CastPage: React.FC = () => {
                 </option>
               ))}
           </select>
-          <input
-            onChange={e => setEditableSchedule(s => ({ ...s, scheduledAt: e.target.value }))}
-            placeholder="Scheduled Time"
-            type="datetime-local"
-            value={editableSchedule.scheduledAt} />
           <button onClick={handleAddSchedule}>スケジュール追加</button>
         </fieldset>
 
