@@ -1,0 +1,31 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "nct-chronocast-api",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-07-20",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "d1-nct-chronocast",
+			"database_id": "b3467c4d-be4b-4d31-a6cd-e073ba7d0fbf"
+		}
+	],
+	"vars": {
+		"CLOUDFLARE_ACCOUNT_ID": "",
+		"S3_ACCESS_KEY_ID": "0e5d3c3ce1853a7397edf401f35c769f",
+		"S3_BUCKET_NAME": "sbdev"
+	},
+	"observability": {
+		"enabled": false,
+		"head_sampling_rate": 1,
+		"logs": {
+			"enabled": true,
+			"head_sampling_rate": 1,
+			"persist": true,
+			"invocation_logs": true
+		}
+	}
+}

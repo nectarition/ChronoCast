@@ -1,0 +1,37 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+  runtime  = "cloudflare"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  oidcSub   String   @unique
+  isActive  Boolean  @default(false)
+
+  @@map("users")
+}
+
+model Folder {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+
+  sources   Source[]
+
+  @@map("folders")
+}
+
+model Source {
+  id        String   @id @default(cuid())
+  folderId  String
+  name      String
+
+  folder Folder @relation(fields: [folderId], references: [id], onDelete: Restrict)
+
+  @@map("sources")
+}
