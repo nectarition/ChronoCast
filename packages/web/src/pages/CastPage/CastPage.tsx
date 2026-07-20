@@ -12,6 +12,7 @@ import FormSelect from '../../components/Form/FormSelect'
 import IconLabel from '../../components/Parts/IconLabel'
 import buttonStyle from '../../components/mixins/buttonStyle'
 import useCast from '../../hooks/useCast'
+import CastLayout from '../../layouts/CastLayout/CastLayout'
 import type { Schedule, Source } from 'chronocast'
 
 type SourceWithURL = Source & {
@@ -308,196 +309,198 @@ const CastPage: React.FC = () => {
   }, [])
 
   return (
-    <Container>
-      <audio
-        muted={isMuted}
-        onEnded={handleEndAudio}
-        onLoadedMetadata={handleLoadedMetadata}
-        onTimeUpdate={handleUpdateTime}
-        ref={audioRef} />
-      <IndicatorSection>
-        <Clock>
-          <ClockDate>{now.toLocaleDateString()}</ClockDate>
-          <ClockTime>{now.toLocaleTimeString()}</ClockTime>
-        </Clock>
-        <Indicators>
-          <Indicator>
-            <IndicatorStatusIcon isActive={isMuted} />
-            <IndicatorText>{isMuted ? 'ミュート中' : 'ミュート解除中'}</IndicatorText>
-          </Indicator>
-          <Indicator>
-            <IndicatorStatusIcon isActive={!playingSource} />
-            <IndicatorText>音源: {playingSource?.name ?? '-'}</IndicatorText>
-          </Indicator>
-          <Indicator>
-            <IndicatorStatusIcon isActive={!playingSource} />
-            <IndicatorText>再生位置: {formatSeconds(currentTime)}/{formatSeconds(duration)}</IndicatorText>
-          </Indicator>
-          <Indicator>
-            <IndicatorStatusIcon isActive={!folderKey} />
-            <IndicatorText>フォルダ: {folderKey}</IndicatorText>
-          </Indicator>
-        </Indicators>
-        <ControlArea>
-          <ControlButton onClick={() => setIsMuted(m => !m)}>
-            <IconLabel
-              icon={isMuted ? <SpeakerSimpleHigh weight="regular" /> : <SpeakerSimpleSlash weight="regular" />}
-              label={`ミュート${isMuted ? 'を解除する' : 'する'}`} />
-          </ControlButton>
-          <ControlButton onClick={stopAudio}>
-            <IconLabel
-              icon={<Stop />}
-              label="再生中の音源を停止する" />
-          </ControlButton>
-        </ControlArea>
-        <ControlArea>
-          <LinkButton to="/">
-            <IconLabel
-              icon={<ArrowLeft />}
-              label="フォルダ選択に戻る" />
-          </LinkButton>
-        </ControlArea>
-      </IndicatorSection>
+    <CastLayout>
+      <Container>
+        <audio
+          muted={isMuted}
+          onEnded={handleEndAudio}
+          onLoadedMetadata={handleLoadedMetadata}
+          onTimeUpdate={handleUpdateTime}
+          ref={audioRef} />
+        <IndicatorSection>
+          <Clock>
+            <ClockDate>{now.toLocaleDateString()}</ClockDate>
+            <ClockTime>{now.toLocaleTimeString()}</ClockTime>
+          </Clock>
+          <Indicators>
+            <Indicator>
+              <IndicatorStatusIcon isActive={isMuted} />
+              <IndicatorText>{isMuted ? 'ミュート中' : 'ミュート解除中'}</IndicatorText>
+            </Indicator>
+            <Indicator>
+              <IndicatorStatusIcon isActive={!playingSource} />
+              <IndicatorText>音源: {playingSource?.name ?? '-'}</IndicatorText>
+            </Indicator>
+            <Indicator>
+              <IndicatorStatusIcon isActive={!playingSource} />
+              <IndicatorText>再生位置: {formatSeconds(currentTime)}/{formatSeconds(duration)}</IndicatorText>
+            </Indicator>
+            <Indicator>
+              <IndicatorStatusIcon isActive={!folderKey} />
+              <IndicatorText>フォルダ: {folderKey}</IndicatorText>
+            </Indicator>
+          </Indicators>
+          <ControlArea>
+            <ControlButton onClick={() => setIsMuted(m => !m)}>
+              <IconLabel
+                icon={isMuted ? <SpeakerSimpleHigh weight="regular" /> : <SpeakerSimpleSlash weight="regular" />}
+                label={`ミュート${isMuted ? 'を解除する' : 'する'}`} />
+            </ControlButton>
+            <ControlButton onClick={stopAudio}>
+              <IconLabel
+                icon={<Stop />}
+                label="再生中の音源を停止する" />
+            </ControlButton>
+          </ControlArea>
+          <ControlArea>
+            <LinkButton to="/">
+              <IconLabel
+                icon={<ArrowLeft />}
+                label="フォルダ選択に戻る" />
+            </LinkButton>
+          </ControlArea>
+        </IndicatorSection>
 
-      <DashboardSection>
-        <h2>放送スケジュール</h2>
+        <DashboardSection>
+          <h2>放送スケジュール</h2>
 
-        <details>
-          <summary>スケジュール追加</summary>
-          <FormSection>
-            <FormItem>
-              <FormLabel>放送開始時刻</FormLabel>
-              <FormInput
-                onChange={e => setEditableSchedule(s => ({ ...s, scheduledAt: e.target.value }))}
-                placeholder="Scheduled Time"
-                type="datetime-local"
-                value={editableSchedule.scheduledAt} />
-            </FormItem>
-            <FormItem>
-              <FormLabel>音源</FormLabel>
-              <FormSelect
-                onChange={e => setEditableSchedule(s => ({ ...s, sourceId: Number(e.target.value) }))}
-                value={editableSchedule.sourceId}>
-                <option value="">音源を選択</option>
-                {sources?.sort((a, b) => a.name.localeCompare(b.name))
-                  .map(source => (
-                    <option
-                      key={source.id}
-                      value={source.id}>
+          <details>
+            <summary>スケジュール追加</summary>
+            <FormSection>
+              <FormItem>
+                <FormLabel>放送開始時刻</FormLabel>
+                <FormInput
+                  onChange={e => setEditableSchedule(s => ({ ...s, scheduledAt: e.target.value }))}
+                  placeholder="Scheduled Time"
+                  type="datetime-local"
+                  value={editableSchedule.scheduledAt} />
+              </FormItem>
+              <FormItem>
+                <FormLabel>音源</FormLabel>
+                <FormSelect
+                  onChange={e => setEditableSchedule(s => ({ ...s, sourceId: Number(e.target.value) }))}
+                  value={editableSchedule.sourceId}>
+                  <option value="">音源を選択</option>
+                  {sources?.sort((a, b) => a.name.localeCompare(b.name))
+                    .map(source => (
+                      <option
+                        key={source.id}
+                        value={source.id}>
+                        {source.name}
+                      </option>
+                    ))}
+                </FormSelect>
+              </FormItem>
+            </FormSection>
+            <FormSection>
+              <FormItem>
+                <FormButton onClick={handleAddSchedule}>
+                  スケジュール追加
+                </FormButton>
+              </FormItem>
+            </FormSection>
+          </details>
+
+          {schedules === undefined && (
+            <p>
+              読み込み中です…
+            </p>
+          )}
+          {schedules && schedules.length === 0 && (
+            <p>
+              スケジュールがありません
+            </p>
+          )}
+          {schedules && schedules.length > 0 && (
+            <ScheduleTable>
+              {schedules.sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime()).map(s => (
+                <ScheduleRow key={s.id}>
+                  <ScheduleRowHeader>
+                    <ScheduleRowIndicatorLabel isActive={s.timerId !== null}>
+                      スケジュール{s.timerId ? '済' : '対象外'}
+                    </ScheduleRowIndicatorLabel>
+                    <ScheduleRowDateTime>
+                      <ScheduleRowDate>{s.scheduledAt.toLocaleDateString()}</ScheduleRowDate>
+                      <ScheduleRowTime>{s.scheduledAt.toLocaleTimeString()}</ScheduleRowTime>
+                    </ScheduleRowDateTime>
+                  </ScheduleRowHeader>
+                  <ScheduleRowBody>
+                    <ScheduleRowSourceName>{sources?.find(source => source.id === s.sourceId)?.name ?? '-'}</ScheduleRowSourceName>
+                    <ScheduleRowActions>
+                      <ActionButton onClick={() => handleDeleteSchedule(s.id)}>
+                        <Trash weight="fill" />
+                      </ActionButton>
+                    </ScheduleRowActions>
+                  </ScheduleRowBody>
+                </ScheduleRow>
+              ))}
+            </ScheduleTable>
+          )}
+
+          <h2>音源管理</h2>
+
+          <details>
+            <summary>音源追加</summary>
+            <FormSection>
+              <FormItem>
+                <FormLabel>音源ファイル</FormLabel>
+                <FormInput
+                  accept="audio/mp3"
+                  onChange={e => setFile(e.target.files?.[0])}
+                  type="file" />
+              </FormItem>
+              <FormItem>
+                <FormLabel>音源名</FormLabel>
+                <FormInput
+                  onChange={e => setSourceName(e.target.value)}
+                  placeholder="音源名"
+                  type="text"
+                  value={sourceName} />
+              </FormItem>
+            </FormSection>
+            <FormSection>
+              <FormItem>
+                <FormButton onClick={handleAddSource}>
+                  音源追加
+                </FormButton>
+              </FormItem>
+            </FormSection>
+          </details>
+
+          {sources === undefined && (
+            <p>読み込み中です…</p>
+          )}
+
+          {sources && sources.length === 0 && (
+            <p>音源が登録されていません</p>
+          )}
+
+          {sources && sources.length > 0 && (
+            <SourceTable>
+              {sources?.sort((a, b) => a.name.localeCompare(b.name))
+                .map(source => (
+                  <SourceRow key={source.id}>
+                    <SourceRowIndicator>
+                      <SourceRowNowPlaying isActive={playingSource?.id !== source.id} />
+                    </SourceRowIndicator>
+                    <SourceRowTitle>
                       {source.name}
-                    </option>
-                  ))}
-              </FormSelect>
-            </FormItem>
-          </FormSection>
-          <FormSection>
-            <FormItem>
-              <FormButton onClick={handleAddSchedule}>
-                スケジュール追加
-              </FormButton>
-            </FormItem>
-          </FormSection>
-        </details>
-
-        {schedules === undefined && (
-          <p>
-            読み込み中です…
-          </p>
-        )}
-        {schedules && schedules.length === 0 && (
-          <p>
-            スケジュールがありません
-          </p>
-        )}
-        {schedules && schedules.length > 0 && (
-          <ScheduleTable>
-            {schedules.sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime()).map(s => (
-              <ScheduleRow key={s.id}>
-                <ScheduleRowHeader>
-                  <ScheduleRowIndicatorLabel isActive={s.timerId !== null}>
-                    スケジュール{s.timerId ? '済' : '対象外'}
-                  </ScheduleRowIndicatorLabel>
-                  <ScheduleRowDateTime>
-                    <ScheduleRowDate>{s.scheduledAt.toLocaleDateString()}</ScheduleRowDate>
-                    <ScheduleRowTime>{s.scheduledAt.toLocaleTimeString()}</ScheduleRowTime>
-                  </ScheduleRowDateTime>
-                </ScheduleRowHeader>
-                <ScheduleRowBody>
-                  <ScheduleRowSourceName>{sources?.find(source => source.id === s.sourceId)?.name ?? '-'}</ScheduleRowSourceName>
-                  <ScheduleRowActions>
-                    <ActionButton onClick={() => handleDeleteSchedule(s.id)}>
+                    </SourceRowTitle>
+                    <ActionButton
+                      disabled={isMuted}
+                      onClick={() => handleManualPlay(source.id)}>
+                      <Play weight="fill" />
+                    </ActionButton>
+                    <ActionButton onClick={() => handleDeleteSource(source.id)}>
                       <Trash weight="fill" />
                     </ActionButton>
-                  </ScheduleRowActions>
-                </ScheduleRowBody>
-              </ScheduleRow>
-            ))}
-          </ScheduleTable>
-        )}
-
-        <h2>音源管理</h2>
-
-        <details>
-          <summary>音源追加</summary>
-          <FormSection>
-            <FormItem>
-              <FormLabel>音源ファイル</FormLabel>
-              <FormInput
-                accept="audio/mp3"
-                onChange={e => setFile(e.target.files?.[0])}
-                type="file" />
-            </FormItem>
-            <FormItem>
-              <FormLabel>音源名</FormLabel>
-              <FormInput
-                onChange={e => setSourceName(e.target.value)}
-                placeholder="音源名"
-                type="text"
-                value={sourceName} />
-            </FormItem>
-          </FormSection>
-          <FormSection>
-            <FormItem>
-              <FormButton onClick={handleAddSource}>
-                音源追加
-              </FormButton>
-            </FormItem>
-          </FormSection>
-        </details>
-
-        {sources === undefined && (
-          <p>読み込み中です…</p>
-        )}
-
-        {sources && sources.length === 0 && (
-          <p>音源が登録されていません</p>
-        )}
-
-        {sources && sources.length > 0 && (
-          <SourceTable>
-            {sources?.sort((a, b) => a.name.localeCompare(b.name))
-              .map(source => (
-                <SourceRow key={source.id}>
-                  <SourceRowIndicator>
-                    <SourceRowNowPlaying isActive={playingSource?.id !== source.id} />
-                  </SourceRowIndicator>
-                  <SourceRowTitle>
-                    {source.name}
-                  </SourceRowTitle>
-                  <ActionButton
-                    disabled={isMuted}
-                    onClick={() => handleManualPlay(source.id)}>
-                    <Play weight="fill" />
-                  </ActionButton>
-                  <ActionButton onClick={() => handleDeleteSource(source.id)}>
-                    <Trash weight="fill" />
-                  </ActionButton>
-                </SourceRow>
-              ))}
-          </SourceTable>
-        )}
-      </DashboardSection>
-    </Container>
+                  </SourceRow>
+                ))}
+            </SourceTable>
+          )}
+        </DashboardSection>
+      </Container>
+    </CastLayout>
   )
 }
 
