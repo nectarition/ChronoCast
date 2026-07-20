@@ -21,7 +21,7 @@ const signAPITokenAsync = async (c: APIContext, user: LoggedInUser) => {
   return await signCoreAsync(secret, user.id, 30)
 }
 
-const signCoreAsync = async (secret: string, userId: string, expiredMinutes: number) => {
+const signCoreAsync = async (secret: string, userId: number, expiredMinutes: number) => {
   const payload = {
     uid: userId,
     exp: Math.floor(Date.now() / 1000) + 60 * expiredMinutes
@@ -49,12 +49,12 @@ const verifyAPITokenAsync = async (c: APIContext, token: string) => {
 
 const verifyCoreAsync = async (token: string, secret: string) => {
   try {
-    const payload = await verify(token, secret)
+    const payload = await verify(token, secret, 'HS256')
     if (!payload || !payload.uid) {
       return null
     }
 
-    const userId = payload.uid as string
+    const userId = payload.uid as number
     const user: LoggedInUser = {
       id: userId
     }
@@ -62,7 +62,7 @@ const verifyCoreAsync = async (token: string, secret: string) => {
     return user
   } catch (err: any) {
     if (err?.message.includes('expired')) {
-      throw new APIError('unauthorized', 'unauthorized', 'Token expired')
+      throw APIError.invalidArgument('Token expired')
     }
     throw err
   }
@@ -105,9 +105,9 @@ const verifyStateTokenAsync = async (c: APIContext, token: string) => {
     return decryptResult.payload as { requestId: string; codeVerifier: string }
   } catch (err: any) {
     if (err?.code === 'ERR_JWT_EXPIRED') {
-      throw new APIError('invalid-operation', 'state-expired', 'State expired')
+      throw APIError.invalidArgument('State expired')
     }
-    throw new APIError('invalid-operation', 'invalid-state', 'Invalid state token')
+    throw APIError.invalidArgument('Invalid state token')
   }
 }
 
@@ -133,7 +133,7 @@ const verifyIdTokenAsync = async (
       [key: string]: any
     }
   } catch (err: any) {
-    throw new APIError('invalid-operation', 'invalid-id-token', 'ID Token verification failed')
+    throw APIError.invalidArgument('ID Token verification failed')
   }
 }
 

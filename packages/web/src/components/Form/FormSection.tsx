@@ -1,0 +1,10 @@
+import styled from '@emotion/styled'
+
+const FormSection = styled.div`
+  margin-bottom: 20px;
+  &:last-child {
+    margin-bottom: 0;
+  }
+`
+
+export default FormSection

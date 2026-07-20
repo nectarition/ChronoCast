@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "noUnusedLocals": false,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "moduleResolution": "bundler"
+  }
+}

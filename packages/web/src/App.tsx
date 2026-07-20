@@ -1,24 +1,34 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
-import { getFirebaseApp } from './libs/FirebaseApp'
 import CastPage from './pages/CastPage/CastPage'
 import LoginPage from './pages/LoginPage/LoginPage'
-
-getFirebaseApp()
+import AuthenticationProvider from './providers/AuthenticationProvider'
+import OIDCCallbackPage from './pages/OIDCCallbackPage/OIDCCallbackPage'
+import FolderSelectPage from './pages/FolderSelectPage/FolderSelectPage'
 
 const router = createBrowserRouter([
   {
-    path: 'cast/:folderId',
-    element: <CastPage />
+    path: 'login',
+    element: <LoginPage />
+  },
+  {
+    path: 'oidc/callback',
+    element: <OIDCCallbackPage />
   },
   {
     index: true,
-    element: <LoginPage />
+    element: <FolderSelectPage />
+  },
+  {
+    path: 'folders/:folderKey',
+    element: <CastPage />
   }
 ])
 
 const App: React.FC = () => {
   return (
-    <RouterProvider router={router} />
+    <AuthenticationProvider>
+      <RouterProvider router={router} />
+    </AuthenticationProvider>
   )
 }
 

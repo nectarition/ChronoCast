@@ -6,6 +6,7 @@ import s3 from './middlewares/s3'
 import accountsRouter from './routes/accountsRouter'
 import type { APIContext, APIEnv } from './@types'
 import { Hono } from 'hono'
+import foldersRouter from './routes/foldersRouter'
 
 const app = new Hono<APIEnv>()
 
@@ -46,5 +47,6 @@ app.options('*', c => {
 app.get('/', c => c.json({ message: 'Hello, World!' }))
 
 app.route('/', accountsRouter)
+app.route('/', foldersRouter)
 
 export default app

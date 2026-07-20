@@ -8,18 +8,18 @@ import { AuthenticateResult, LoginResult } from 'chronocast'
 const accountsRouter = new Hono<APIEnv>()
 
 accountsRouter.post('/accounts/login', async (c) => {
-  const { token } = await c.req.json()
+  const { loginToken } = await c.req.json()
   const prisma = c.get('prisma')
-  const payload = await jwtHelper.verifyLoginTokenAsync(c, token)
+  const payload = await jwtHelper.verifyLoginTokenAsync(c, loginToken)
   if (!payload) {
-    throw new APIError('invalid-operation', 'invalid-token', 'Invalid token')
+    throw APIError.invalidArgument('Invalid token')
   }
 
   const user = await prisma.user.findUnique({
     where: { id: payload.id }
   })
   if (!user) {
-    throw new APIError('invalid-operation', 'user-not-found', 'User not found')
+    throw APIError.notFound('User not found')
   }
 
   const apiToken = await jwtHelper.signAPITokenAsync(c, { id: user.id })
@@ -62,7 +62,7 @@ accountsRouter.post('/accounts/oidc-callback', async (c) => {
   
   const statePayload = await jwtHelper.verifyStateTokenAsync(c, state)
   if (!statePayload) {
-    throw new APIError('invalid-operation', 'invalid-state', 'Invalid state token')
+    throw APIError.invalidArgument('Invalid state token')
   }
 
   const { codeVerifier } = statePayload
@@ -87,7 +87,7 @@ accountsRouter.post('/accounts/oidc-callback', async (c) => {
   })
 
   if (!tokenResponse.ok) {
-    throw new APIError('invalid-operation', 'token-request-failed', 'Token request failed')
+    throw APIError.internalServerError('Token request failed')
   }
 
   const tokenData = await tokenResponse.json() as {
@@ -107,7 +107,7 @@ accountsRouter.post('/accounts/oidc-callback', async (c) => {
 
   const oidcSub = payload.sub
   if (!oidcSub) {
-    throw new APIError('invalid-operation', 'sub-not-found', 'Sub not found in ID token')
+    throw APIError.notFound('Sub not found in ID token')
   }
 
   const prisma = c.get('prisma')

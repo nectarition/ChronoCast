@@ -9,7 +9,7 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
+  id        Int   @id @default(autoincrement())
   createdAt DateTime @default(now())
   oidcSub   String   @unique
   isActive  Boolean  @default(false)
@@ -18,20 +18,35 @@ model User {
 }
 
 model Folder {
-  id        String   @id @default(cuid())
+  id        Int   @id @default(autoincrement())
   slug      String   @unique
 
   sources   Source[]
+  schedules Schedule[]
 
   @@map("folders")
 }
 
 model Source {
-  id        String   @id @default(cuid())
-  folderId  String
+  id        Int   @id @default(autoincrement())
+  folderId  Int
   name      String
 
   folder Folder @relation(fields: [folderId], references: [id], onDelete: Restrict)
 
+  schedules Schedule[]
+
   @@map("sources")
+}
+
+model Schedule {
+  id        Int   @id @default(autoincrement())
+  folderId  Int
+  sourceId  Int
+  scheduledAt DateTime
+
+  folder Folder @relation(fields: [folderId], references: [id], onDelete: Restrict)
+  source Source @relation(fields: [sourceId], references: [id], onDelete: Restrict)
+
+  @@map("schedules")
 }

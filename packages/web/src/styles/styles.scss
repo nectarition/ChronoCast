@@ -1,6 +1,3 @@
-// google font から m plus 1 をインポート
-@import url('https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@400;700&display=swap');
-
 * {
   box-sizing: border-box;
 }
@@ -13,7 +10,7 @@ html, body, #root {
 }
 
 body {
-  font-family: 'M PLUS 1', sans-serif;
+  font-family: system-ui, sans-serif;
   background-color: #202020;
   color: #ffffff;
 }

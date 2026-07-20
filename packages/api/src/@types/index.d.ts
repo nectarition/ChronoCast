@@ -24,5 +24,5 @@ export type RequestError = {
 }
 
 export type LoggedInUser = {
-  id: string;
+  id: number;
 }

@@ -1,26 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
+import { css } from '@emotion/react'
 import styled from '@emotion/styled'
-import { Play, Power, Prohibit, SignOut, SpeakerSimpleHigh, SpeakerSimpleSlash, Trash } from '@phosphor-icons/react'
-import { ScheduleDocument, SourceDocument } from '../../@types'
-import IconLabel from '../../components/IconLabel'
+import { ArrowLeft, Play, SpeakerSimpleHigh, SpeakerSimpleSlash, Stop, Trash } from '@phosphor-icons/react'
+import IconLabel from '../../components/Parts/IconLabel'
 import useCast from '../../hooks/useCast'
-import useFirebase from '../../hooks/useFirebase'
+import type { Schedule, Source } from 'chronocast'
 
-type SourceDocumentWithURL = SourceDocument & {
+type SourceWithURL = Source & {
   url: string
 }
-type ScheduleDocumentWithTimeId = ScheduleDocument & {
+type ScheduleWithTimeId = Schedule & {
   timerId: NodeJS.Timeout | null
 }
 
 const CastPage: React.FC = () => {
-  const { folderId } = useParams()
-  const navigate = useNavigate()
-
+  const { folderKey } = useParams()
   const {
-    getSourcesByFolderIdAsync,
-    getSchedulesByFolderIdAsync,
+    getSourcesByFolderKeyAsync,
+    getSchedulesByFolderKeyAsync,
     addScheduleAsync,
     addSourceAsync,
     deleteScheduleAsync,
@@ -28,27 +26,25 @@ const CastPage: React.FC = () => {
     getSourceURLAsync,
     uploadSourceAsync
   } = useCast()
-  const { logoutAsync } = useFirebase()
 
   const [now, setNow] = useState(new Date())
   const audioRef = useRef<HTMLAudioElement>(null)
   const [isMuted, setIsMuted] = useState(true)
 
-  const [isOnAir, setIsOnAir] = useState(false)
-  const [playingSource, setPlayingSource] = useState<SourceDocumentWithURL | null>()
+  const [playingSource, setPlayingSource] = useState<SourceWithURL | null>()
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
 
-  const [initialSources, setInitialSources] = useState<SourceDocumentWithURL[]>()
-  const [sources, setSources] = useState<SourceDocumentWithURL[]>()
-  const [schedules, setSchedules] = useState<ScheduleDocumentWithTimeId[]>()
+  const [initialSources, setInitialSources] = useState<SourceWithURL[]>()
+  const [sources, setSources] = useState<SourceWithURL[]>()
+  const [schedules, setSchedules] = useState<ScheduleWithTimeId[]>()
 
   const [file, setFile] = useState<File>()
   const [editableSource, setEditableSource] = useState({
     name: ''
   })
   const [editableSchedule, setEditableSchedule] = useState({
-    sourceId: '',
+    sourceId: 0,
     scheduledAt: ''
   })
 
@@ -70,20 +66,13 @@ const CastPage: React.FC = () => {
     resetDuration()
   }, [])
 
-  const setOnAir = useCallback((isOnAir: boolean) => {
-    setIsOnAir(isOnAir)
-    if (!isOnAir) {
-      stopAudio()
-    }
-  }, [])
-
   const setMute = useCallback((isMute: boolean) => {
     if (!audioRef.current) return
     setIsMuted(isMute)
     audioRef.current.muted = isMute
   }, [])
 
-  const playWithSource = useCallback((source: SourceDocumentWithURL) => {
+  const playWithSource = useCallback((source: SourceWithURL) => {
     if (!audioRef.current) return
     resetDuration()
     setPlayingSource(source)
@@ -92,7 +81,7 @@ const CastPage: React.FC = () => {
       .catch(err => console.error('Playback failed:', err))
   }, [])
 
-  const addQueue = useCallback((sourceId: string, timeSpan: number) => {
+  const addQueue = useCallback((sourceId: number, timeSpan: number) => {
     const source = sources?.find(s => s.id === sourceId)
     if (!source) return
     return setTimeout(() => playWithSource(source), timeSpan)
@@ -107,14 +96,15 @@ const CastPage: React.FC = () => {
   }, [])
 
   const handleAddSchedule = useCallback(() => {
-    if (!folderId || !sources) return
+    if (!folderKey || !sources) return
 
-    const schedule = {
+    const schedule: Schedule = {
       ...editableSchedule,
-      folderId,
+      id: 0,
       scheduledAt: new Date(editableSchedule.scheduledAt)
     }
-    addScheduleAsync(schedule)
+    const abort = new AbortController()
+    addScheduleAsync(folderKey, schedule, abort)
       .then(id => {
         const source = sources?.find(s => s.id === schedule.sourceId)
         if (!source) return
@@ -128,7 +118,7 @@ const CastPage: React.FC = () => {
           timerId
         }]))
         setEditableSchedule({
-          sourceId: '',
+          sourceId: 0,
           scheduledAt: ''
         })
 
@@ -138,19 +128,19 @@ const CastPage: React.FC = () => {
         alert('追加に失敗しました')
         throw err
       })
-  }, [folderId, editableSchedule, sources])
+  }, [folderKey, editableSchedule, sources])
 
-  const handleDeleteSchedule = useCallback((scheduleId: string) => {
-    if (!schedules) return
+  const handleDeleteSchedule = useCallback((scheduleId: number) => {
+    if (!folderKey || !schedules) return
     if (!confirm('削除しますか？')) return
-    deleteScheduleAsync(scheduleId)
+    const abort = new AbortController()
+    deleteScheduleAsync(folderKey, scheduleId, abort)
       .then(() => {
         alert('削除しました')
         const schedule = schedules.find(s => s.id === scheduleId)
         if (schedule?.timerId) {
           clearTimeout(schedule.timerId)
         }
-
         setSchedules(s => {
           if (!s) return
           const newSchedules = s.filter(schedule => schedule.id !== scheduleId)
@@ -158,21 +148,23 @@ const CastPage: React.FC = () => {
         })
       })
       .catch(err => { throw err })
-  }, [schedules])
+  }, [folderKey, schedules, deleteScheduleAsync])
 
   const handleAddSource = useCallback(() => {
-    if (!folderId || !file) return
+    if (!folderKey || !file) return
 
-    const source = {
+    const source: Source = {
       ...editableSource,
-      folderId
+      id: 0,
+      folderKey
     }
-    addSourceAsync(source)
+    const abort = new AbortController()
+    addSourceAsync(folderKey, source, abort)
       .then(id => {
-        uploadSourceAsync(folderId, id, file)
+        uploadSourceAsync(folderKey, id, file, abort)
           .then(async () => {
             alert('追加しました')
-            const url = await getSourceURLAsync(folderId, id)
+            const url = await getSourceURLAsync(folderKey, id, abort)
             setSources(s => s && ([...s, {
               ...source,
               id,
@@ -187,12 +179,13 @@ const CastPage: React.FC = () => {
         alert('音源の追加に失敗しました')
         throw err
       })
-  }, [folderId, file, editableSource])
+  }, [folderKey, file, editableSource])
 
-  const handleDeleteSource = useCallback((sourceId: string) => {
-    if (!folderId) return
+  const handleDeleteSource = useCallback((sourceId: number) => {
+    if (!folderKey) return
     if (!confirm('音源を削除しますか？')) return
-    deleteSourceAsync(folderId, sourceId)
+    const abort = new AbortController()
+    deleteSourceAsync(folderKey, sourceId, abort)
       .then(() => {
         alert('削除しました')
         setSources(s => {
@@ -202,9 +195,9 @@ const CastPage: React.FC = () => {
         })
       })
       .catch(err => { throw err })
-  }, [folderId])
+  }, [folderKey])
 
-  const handleManualPlay = useCallback((sourceId: string) => {
+  const handleManualPlay = useCallback((sourceId: number) => {
     const source = sources?.find(s => s.id === sourceId)
     if (!source) return
     playWithSource(source)
@@ -220,22 +213,13 @@ const CastPage: React.FC = () => {
     setCurrentTime(audioRef.current.currentTime)
   }, [])
 
-  const handleLogout = useCallback(() => {
-    if (!confirm('ログアウトしますか？')) return
-    logoutAsync()
-      .then(() => navigate('/'))
-      .catch(err => {
-        alert('ログアウトに失敗しました')
-        throw err
-      })
-  }, [])
-
   useEffect(() => {
-    if (!folderId) return
-    getSourcesByFolderIdAsync(folderId)
+    if (!folderKey) return
+    const abort = new AbortController()
+    getSourcesByFolderKeyAsync(folderKey, abort)
       .then(async fetchedSources => {
         const sourcesWithUrls = await Promise.all(fetchedSources.map(async source => {
-          const url = await getSourceURLAsync(source.folderId, source.id)
+          const url = await getSourceURLAsync(source.folderKey, source.id, abort)
           return {
             ...source,
             url
@@ -245,12 +229,13 @@ const CastPage: React.FC = () => {
         setSources(sourcesWithUrls)
       })
       .catch(err => { throw err })
-  }, [folderId])
+    return () => abort.abort()
+  }, [folderKey, getSourcesByFolderKeyAsync])
 
   useEffect(() => {
-    if (!folderId || !initialSources) return
-
-    getSchedulesByFolderIdAsync(folderId)
+    if (!folderKey || !initialSources) return
+    const abort = new AbortController()
+    getSchedulesByFolderKeyAsync(folderKey, abort)
       .then(async fetchedSchedules => {
         const schedulesWithTimeIds = await Promise.all(fetchedSchedules.map(async schedule => {
           const timeSpan = schedule.scheduledAt.getTime() - new Date().getTime()
@@ -285,7 +270,7 @@ const CastPage: React.FC = () => {
         setSchedules(schedulesWithTimeIds)
       })
       .catch(err => { throw err })
-  }, [folderId, initialSources])
+  }, [folderKey, initialSources, getSchedulesByFolderKeyAsync])
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -298,22 +283,16 @@ const CastPage: React.FC = () => {
 
   return (
     <Container>
-      {isOnAir && (
-        <audio
-          onEnded={handleEndAudio}
-          onLoadedMetadata={handleLoadedMetadata}
-          onTimeUpdate={handleUpdateTime}
-          ref={audioRef} />
-      )}
+      <audio
+        onEnded={handleEndAudio}
+        onLoadedMetadata={handleLoadedMetadata}
+        onTimeUpdate={handleUpdateTime}
+        ref={audioRef} />
       <IndicatorSection>
         <Clock>
           {now.toLocaleTimeString()}
         </Clock>
         <Indicators>
-          <Indicator>
-            <IndicatorStatusIcon isActive={!isOnAir} />
-            <IndicatorText>{isOnAir ? 'ON AIR' : 'STAND BY'}</IndicatorText>
-          </Indicator>
           <Indicator>
             <IndicatorStatusIcon isActive={isMuted} />
             <IndicatorText>{isMuted ? 'ミュート中' : 'ミュート解除中'}</IndicatorText>
@@ -327,16 +306,11 @@ const CastPage: React.FC = () => {
             <IndicatorText>再生位置: {formatSeconds(currentTime)}/{formatSeconds(duration)}</IndicatorText>
           </Indicator>
           <Indicator>
-            <IndicatorStatusIcon isActive={!folderId} />
-            <IndicatorText>フォルダ: {folderId}</IndicatorText>
+            <IndicatorStatusIcon isActive={!folderKey} />
+            <IndicatorText>フォルダ: {folderKey}</IndicatorText>
           </Indicator>
         </Indicators>
         <ControlArea>
-          <ControlButton onClick={() => setOnAir(!isOnAir)}>
-            <IconLabel
-              icon={<Power weight="regular" />}
-              label={`主電源を${!isOnAir ? '入れる' : '切る'}`} />
-          </ControlButton>
           <ControlButton onClick={() => setMute(!isMuted)}>
             <IconLabel
               icon={isMuted ? <SpeakerSimpleHigh weight="regular" /> : <SpeakerSimpleSlash weight="regular" />}
@@ -344,16 +318,16 @@ const CastPage: React.FC = () => {
           </ControlButton>
           <ControlButton onClick={stopAudio}>
             <IconLabel
-              icon={<Prohibit weight="regular" />}
-              label="放送停止" />
+              icon={<Stop />}
+              label="再生中の音源を停止する" />
           </ControlButton>
         </ControlArea>
         <ControlArea>
-          <ControlButton onClick={handleLogout}>
+          <LinkButton to="/">
             <IconLabel
-              icon={<SignOut weight="fill" />}
-              label="ログアウト" />
-          </ControlButton>
+              icon={<ArrowLeft />}
+              label="フォルダ選択に戻る" />
+          </LinkButton>
         </ControlArea>
       </IndicatorSection>
       <DashboardSection>
@@ -367,7 +341,7 @@ const CastPage: React.FC = () => {
             type="datetime-local"
             value={editableSchedule.scheduledAt} />
           <select
-            onChange={e => setEditableSchedule(s => ({ ...s, sourceId: e.target.value }))}
+            onChange={e => setEditableSchedule(s => ({ ...s, sourceId: Number(e.target.value) }))}
             value={editableSchedule.sourceId}>
             <option value="">音源を選択</option>
             {sources?.sort((a, b) => a.name.localeCompare(b.name))
@@ -535,6 +509,7 @@ const IndicatorStatusIcon = styled.div<{ isActive: boolean }>`
     position: absolute;
     top: 15%;
     left: 15%;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
     background-color: ${props => props.isActive ? 'var(--indicator-active-color)' : 'var(--indicator-inactive-color)'};
     border-radius: 50%;
     box-shadow: 0 0 10px ${props => props.isActive ? 'var(--indicator-active-color)' : 'var(--indicator-inactive-color)'};
@@ -546,7 +521,7 @@ const ControlArea = styled.div`
   flex-flow: column;
   gap: 10px;
 `
-const ControlButton = styled.button`
+const buttonStyle = css`
   padding: 10px;
   font-size: 1rem;
   outline: none;
@@ -559,6 +534,13 @@ const ControlButton = styled.button`
   &:active {
     background-color: var(--button-background-active-color);
   }
+`
+const ControlButton = styled.button`
+  ${buttonStyle}
+`
+const LinkButton = styled(Link)`
+  ${buttonStyle}
+  text-decoration: none;
 `
 const Button = styled(ControlButton)`
   display: inline-block;

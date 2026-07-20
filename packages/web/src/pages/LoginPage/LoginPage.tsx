@@ -1,47 +1,51 @@
 import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import useFirebase from '../../hooks/useFirebase'
+import useNectaritionID from '../../hooks/useNectaritionID'
+import DefaultLayout from '../../layouts/DefaultLayout/DefaultLayout'
+import FormSection from '../../components/Form/FormSection'
+import FormItem from '../../components/Form/FormItem'
+import FormButton from '../../components/Form/FormButton'
+import styled from '@emotion/styled'
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate()
-  const { loginByEmailAsync } = useFirebase()
+  const { getAuthorizeURLAsync } = useNectaritionID()
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [folderId, setFolderId] = useState('')
 
-  const handleLogin = useCallback(async () => {
-    if (!folderId) return
-    loginByEmailAsync(email, password)
-      .then(() => {
-        navigate(`/cast/${folderId}`)
+  const handleLoginWithNectaritionID = useCallback(() => {
+    getAuthorizeURLAsync(new AbortController())
+      .then(url => {
+        window.location.href = url
       })
-      .catch(err => {
-        alert('Login failed')
-        throw err
-      })
-  }, [email, password, folderId])
+  }, [getAuthorizeURLAsync])
 
   return (
-    <>
-      <h1>ログイン</h1>
-      <input
-        onChange={e => setEmail(e.target.value)}
-        placeholder="メールアドレス"
-        type="email"
-        value={email} />
-      <input
-        onChange={e => setPassword(e.target.value)}
-        placeholder="パスワード"
-        type="password"
-        value={password} />
-      <input
-        onChange={e => setFolderId(e.target.value)}
-        placeholder="フォルダ"
-        value={folderId} />
-      <button onClick={handleLogin}>Login</button>
-    </>
+    <DefaultLayout allowAnonymous>
+      <h1>ChronoCast ログイン</h1>
+      <FormSection>
+        <FormItem $inlined>
+          <FormButton
+            inlined
+            onClick={handleLoginWithNectaritionID}>
+            <LogoImage src="https://id.nectarition.jp/assets/logo/white.png" />
+            ねくたりしょん ID でログイン
+          </FormButton>
+        </FormItem>
+      </FormSection>
+    </DefaultLayout>
   )
 }
 
 export default LoginPage
+
+const LogoImage = styled.img`
+  height: 1.25em;
+  vertical-align: sub;
+  padding-right: 0.5em;
+
+  transition: filter 0.2s;
+  
+  button:disabled & {
+    filter: contrast(0.1)
+  }
+`
