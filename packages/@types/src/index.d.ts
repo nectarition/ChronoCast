@@ -3,6 +3,7 @@ export type SuccessResult = {
 }
 
 export type LoggedInUser = {
+  email: string
   isActive: boolean
 }
 

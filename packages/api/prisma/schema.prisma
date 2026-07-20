@@ -9,8 +9,9 @@ datasource db {
 }
 
 model User {
-  id        Int   @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
+  email     String   @unique
   oidcSub   String   @unique
   isActive  Boolean  @default(false)
 
@@ -18,8 +19,8 @@ model User {
 }
 
 model Folder {
-  id        Int   @id @default(autoincrement())
-  slug      String   @unique
+  id   Int    @id @default(autoincrement())
+  slug String @unique
 
   sources   Source[]
   schedules Schedule[]
@@ -28,9 +29,9 @@ model Folder {
 }
 
 model Source {
-  id        Int   @id @default(autoincrement())
-  folderId  Int
-  name      String
+  id       Int    @id @default(autoincrement())
+  folderId Int
+  name     String
 
   folder Folder @relation(fields: [folderId], references: [id], onDelete: Restrict)
 
@@ -40,9 +41,9 @@ model Source {
 }
 
 model Schedule {
-  id        Int   @id @default(autoincrement())
-  folderId  Int
-  sourceId  Int
+  id          Int      @id @default(autoincrement())
+  folderId    Int
+  sourceId    Int
   scheduledAt DateTime
 
   folder Folder @relation(fields: [folderId], references: [id], onDelete: Restrict)

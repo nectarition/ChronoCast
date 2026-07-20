@@ -1,13 +1,13 @@
 import crypto from 'crypto'
+import { AuthenticateResult, LoginResult } from 'chronocast'
 import { Hono } from 'hono'
 import jwtHelper from '../helpers/jwtHelper'
 import APIError from '../libs/APIError'
 import type { APIEnv } from '../@types'
-import { AuthenticateResult, LoginResult } from 'chronocast'
 
 const accountsRouter = new Hono<APIEnv>()
 
-accountsRouter.post('/accounts/login', async (c) => {
+accountsRouter.post('/accounts/login', async c => {
   const { loginToken } = await c.req.json()
   const prisma = c.get('prisma')
   const payload = await jwtHelper.verifyLoginTokenAsync(c, loginToken)
@@ -27,6 +27,7 @@ accountsRouter.post('/accounts/login', async (c) => {
   const result: LoginResult = {
     apiToken: apiToken,
     user: {
+      email: user.email,
       isActive: user.isActive
     }
   }
@@ -34,17 +35,17 @@ accountsRouter.post('/accounts/login', async (c) => {
   return c.json(result)
 })
 
-accountsRouter.get('/accounts/authorize-url', async (c) => {
+accountsRouter.get('/accounts/authorize-url', async c => {
   const clientId = c.env.OIDC_CLIENT_ID
   const redirectUri = c.env.OIDC_CALLBACK_URI
-  
+
   const requestId = crypto.randomUUID()
   const codeVerifier = crypto.randomBytes(32).toString('base64url')
   const nonce = crypto.randomBytes(32).toString('base64url')
-  
+
   const state = await jwtHelper.signStateTokenAsync(c, requestId, codeVerifier)
   const codeChallenge = crypto.createHash('sha256').update(codeVerifier).digest('base64url')
-  
+
   const url = 'https://idapi.nectarition.jp/oidc/authorize'
     + '?response_type=code'
     + `&client_id=${encodeURIComponent(clientId)}`
@@ -57,9 +58,9 @@ accountsRouter.get('/accounts/authorize-url', async (c) => {
   return c.json({ url })
 })
 
-accountsRouter.post('/accounts/oidc-callback', async (c) => {
+accountsRouter.post('/accounts/oidc-callback', async c => {
   const { code, state } = await c.req.json()
-  
+
   const statePayload = await jwtHelper.verifyStateTokenAsync(c, state)
   if (!statePayload) {
     throw APIError.invalidArgument('Invalid state token')
@@ -93,7 +94,7 @@ accountsRouter.post('/accounts/oidc-callback', async (c) => {
   const tokenData = await tokenResponse.json() as {
     id_token: string
   }
-  
+
   const idToken = tokenData.id_token
 
   const jwksUri = 'https://idapi.nectarition.jp/.well-known/jwks.json'
@@ -109,6 +110,10 @@ accountsRouter.post('/accounts/oidc-callback', async (c) => {
   if (!oidcSub) {
     throw APIError.notFound('Sub not found in ID token')
   }
+  const email = payload.email
+  if (!email) {
+    throw APIError.notFound('Email not found in ID token')
+  }
 
   const prisma = c.get('prisma')
   let user = await prisma.user.findFirst({
@@ -116,7 +121,16 @@ accountsRouter.post('/accounts/oidc-callback', async (c) => {
   })
   if (!user) {
     user = await prisma.user.create({
-      data: { oidcSub }
+      data: {
+        email: email,
+        oidcSub
+      }
+    })
+  }
+  else if (user.email !== email) {
+    user = await prisma.user.update({
+      where: { id: user.id },
+      data: { email }
     })
   }
 

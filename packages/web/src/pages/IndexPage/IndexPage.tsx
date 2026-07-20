@@ -61,6 +61,9 @@ const IndexPage: React.FC = () => {
           アカウントがロックされています。管理者にお問い合わせください。
         </p>
       )}
+      <p>
+        ログイン中のユーザ: {user?.email}
+      </p>
       <FormSection>
         <FormItem>
           <FormButton onClick={handleLogout}>
