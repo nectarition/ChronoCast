@@ -1,9 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { css } from '@emotion/react'
 import styled from '@emotion/styled'
 import { ArrowLeft, Play, SpeakerSimpleHigh, SpeakerSimpleSlash, Stop, Trash } from '@phosphor-icons/react'
+import toast from 'react-hot-toast'
+import FormButton from '../../components/Form/FormButton'
+import FormInput from '../../components/Form/FormInput'
+import FormItem from '../../components/Form/FormItem'
+import FormLabel from '../../components/Form/FormLabel'
+import FormSection from '../../components/Form/FormSection'
+import FormSelect from '../../components/Form/FormSelect'
 import IconLabel from '../../components/Parts/IconLabel'
+import buttonStyle from '../../components/mixins/buttonStyle'
 import useCast from '../../hooks/useCast'
 import type { Schedule, Source } from 'chronocast'
 
@@ -40,9 +47,7 @@ const CastPage: React.FC = () => {
   const [schedules, setSchedules] = useState<ScheduleWithTimeId[]>()
 
   const [file, setFile] = useState<File>()
-  const [editableSource, setEditableSource] = useState({
-    name: ''
-  })
+  const [sourceName, setSourceName] = useState('')
   const [editableSchedule, setEditableSchedule] = useState({
     sourceId: 0,
     scheduledAt: ''
@@ -66,14 +71,8 @@ const CastPage: React.FC = () => {
     resetDuration()
   }, [])
 
-  const setMute = useCallback((isMute: boolean) => {
-    if (!audioRef.current) return
-    setIsMuted(isMute)
-    audioRef.current.muted = isMute
-  }, [])
-
   const playWithSource = useCallback((source: SourceWithURL) => {
-    if (!audioRef.current) return
+    if (!audioRef.current || audioRef.current.muted) return
     resetDuration()
     setPlayingSource(source)
     audioRef.current.src = source.url
@@ -82,10 +81,20 @@ const CastPage: React.FC = () => {
   }, [])
 
   const addQueue = useCallback((sourceId: number, timeSpan: number) => {
-    const source = sources?.find(s => s.id === sourceId)
+    if (!sources) return
+    if (timeSpan < 0) return
+    const source = sources.find(s => s.id === sourceId)
     if (!source) return
-    return setTimeout(() => playWithSource(source), timeSpan)
-  }, [sources])
+    const timerId = setTimeout(() => {
+      playWithSource(source)
+      setSchedules(s => {
+        if (!s) return
+        const newSchedules = s.map(schedule => schedule.timerId === timerId ? { ...schedule, timerId: null } : schedule)
+        return newSchedules
+      })
+    }, timeSpan)
+    return timerId
+  }, [sources, playWithSource])
 
   const formatSeconds = useCallback((seconds: number) => {
     const minutes = Math.floor(seconds / 60)
@@ -98,6 +107,12 @@ const CastPage: React.FC = () => {
   const handleAddSchedule = useCallback(() => {
     if (!folderKey || !sources) return
 
+    const now = new Date()
+    if (now.getTime() > new Date(editableSchedule.scheduledAt).getTime()) {
+      toast.error('過去の時刻は指定できません')
+      return
+    }
+
     const schedule: Schedule = {
       ...editableSchedule,
       id: 0,
@@ -106,7 +121,7 @@ const CastPage: React.FC = () => {
     const abort = new AbortController()
     addScheduleAsync(folderKey, schedule, abort)
       .then(id => {
-        const source = sources?.find(s => s.id === schedule.sourceId)
+        const source = sources.find(s => s.id === schedule.sourceId)
         if (!source) return
 
         const timerId = addQueue(source.id, schedule.scheduledAt.getTime() - new Date().getTime())
@@ -122,13 +137,13 @@ const CastPage: React.FC = () => {
           scheduledAt: ''
         })
 
-        alert('追加しました')
+        toast.success('スケジュールを追加しました')
       })
       .catch(err => {
-        alert('追加に失敗しました')
+        toast.error('追加に失敗しました')
         throw err
       })
-  }, [folderKey, editableSchedule, sources])
+  }, [folderKey, editableSchedule, sources, addQueue])
 
   const handleDeleteSchedule = useCallback((scheduleId: number) => {
     if (!folderKey || !schedules) return
@@ -136,7 +151,6 @@ const CastPage: React.FC = () => {
     const abort = new AbortController()
     deleteScheduleAsync(folderKey, scheduleId, abort)
       .then(() => {
-        alert('削除しました')
         const schedule = schedules.find(s => s.id === scheduleId)
         if (schedule?.timerId) {
           clearTimeout(schedule.timerId)
@@ -146,40 +160,39 @@ const CastPage: React.FC = () => {
           const newSchedules = s.filter(schedule => schedule.id !== scheduleId)
           return newSchedules
         })
+        toast.success('スケジュールを削除しました')
       })
-      .catch(err => { throw err })
+      .catch(err => {
+        toast.error('削除に失敗しました')
+        throw err
+      })
   }, [folderKey, schedules, deleteScheduleAsync])
 
   const handleAddSource = useCallback(() => {
-    if (!folderKey || !file) return
+    if (!folderKey || !file || !sourceName) return
 
-    const source: Source = {
-      ...editableSource,
-      id: 0,
-      folderKey
-    }
     const abort = new AbortController()
-    addSourceAsync(folderKey, source, abort)
+    addSourceAsync(folderKey, sourceName, abort)
       .then(id => {
         uploadSourceAsync(folderKey, id, file, abort)
           .then(async () => {
-            alert('追加しました')
             const url = await getSourceURLAsync(folderKey, id, abort)
             setSources(s => s && ([...s, {
-              ...source,
+              name: sourceName,
+              folderKey,
               id,
               url
             }]))
-            setEditableSource({
-              name: ''
-            })
+            setSourceName('')
+            setFile(undefined)
+            toast.success('音源を追加しました')
           })
       })
       .catch(err => {
-        alert('音源の追加に失敗しました')
+        toast.error('音源の追加に失敗しました')
         throw err
       })
-  }, [folderKey, file, editableSource])
+  }, [folderKey, file, sourceName])
 
   const handleDeleteSource = useCallback((sourceId: number) => {
     if (!folderKey) return
@@ -187,21 +200,25 @@ const CastPage: React.FC = () => {
     const abort = new AbortController()
     deleteSourceAsync(folderKey, sourceId, abort)
       .then(() => {
-        alert('削除しました')
         setSources(s => {
           if (!s) return
           const newSources = s.filter(source => source.id !== sourceId)
           return newSources
         })
+        toast.success('音源を削除しました')
       })
-      .catch(err => { throw err })
+      .catch(err => {
+        toast.error('音源の削除に失敗しました')
+        throw err
+      })
   }, [folderKey])
 
   const handleManualPlay = useCallback((sourceId: number) => {
-    const source = sources?.find(s => s.id === sourceId)
+    if (isMuted || !sources) return
+    const source = sources.find(s => s.id === sourceId)
     if (!source) return
     playWithSource(source)
-  }, [sources])
+  }, [isMuted, sources])
 
   const handleLoadedMetadata = useCallback(() => {
     if (!audioRef.current) return
@@ -227,8 +244,13 @@ const CastPage: React.FC = () => {
         }))
         setInitialSources(sourcesWithUrls)
         setSources(sourcesWithUrls)
+        toast.success('音源を読み込みました')
       })
-      .catch(err => { throw err })
+      .catch(err => {
+        if (err.name !== 'APIError') return
+        toast.error('音源の読み込みに失敗しました')
+        throw err
+      })
     return () => abort.abort()
   }, [folderKey, getSourcesByFolderKeyAsync])
 
@@ -239,14 +261,14 @@ const CastPage: React.FC = () => {
       .then(async fetchedSchedules => {
         const schedulesWithTimeIds = await Promise.all(fetchedSchedules.map(async schedule => {
           const timeSpan = schedule.scheduledAt.getTime() - new Date().getTime()
-          if (timeSpan < 0) {
+          if (timeSpan < 0 || timeSpan > 24 * 60 * 60 * 1000) {
             return {
               ...schedule,
               timerId: null
             }
           }
 
-          const source = initialSources?.find(s => s.id === schedule.sourceId)
+          const source = initialSources.find(s => s.id === schedule.sourceId)
           if (!source) {
             return {
               ...schedule,
@@ -268,9 +290,13 @@ const CastPage: React.FC = () => {
           }
         }))
         setSchedules(schedulesWithTimeIds)
+        toast.success('スケジュールを読み込みました')
       })
-      .catch(err => { throw err })
-  }, [folderKey, initialSources, getSchedulesByFolderKeyAsync])
+      .catch(err => {
+        toast.error('スケジュールの読み込みに失敗しました')
+        throw err
+      })
+  }, [folderKey, initialSources, getSchedulesByFolderKeyAsync, addQueue])
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -284,13 +310,15 @@ const CastPage: React.FC = () => {
   return (
     <Container>
       <audio
+        muted={isMuted}
         onEnded={handleEndAudio}
         onLoadedMetadata={handleLoadedMetadata}
         onTimeUpdate={handleUpdateTime}
         ref={audioRef} />
       <IndicatorSection>
         <Clock>
-          {now.toLocaleTimeString()}
+          <ClockDate>{now.toLocaleDateString()}</ClockDate>
+          <ClockTime>{now.toLocaleTimeString()}</ClockTime>
         </Clock>
         <Indicators>
           <Indicator>
@@ -311,7 +339,7 @@ const CastPage: React.FC = () => {
           </Indicator>
         </Indicators>
         <ControlArea>
-          <ControlButton onClick={() => setMute(!isMuted)}>
+          <ControlButton onClick={() => setIsMuted(m => !m)}>
             <IconLabel
               icon={isMuted ? <SpeakerSimpleHigh weight="regular" /> : <SpeakerSimpleSlash weight="regular" />}
               label={`ミュート${isMuted ? 'を解除する' : 'する'}`} />
@@ -330,124 +358,144 @@ const CastPage: React.FC = () => {
           </LinkButton>
         </ControlArea>
       </IndicatorSection>
+
       <DashboardSection>
         <h2>放送スケジュール</h2>
 
-        <fieldset>
-          <legend>スケジュール追加</legend>
-          <input
-            onChange={e => setEditableSchedule(s => ({ ...s, scheduledAt: e.target.value }))}
-            placeholder="Scheduled Time"
-            type="datetime-local"
-            value={editableSchedule.scheduledAt} />
-          <select
-            onChange={e => setEditableSchedule(s => ({ ...s, sourceId: Number(e.target.value) }))}
-            value={editableSchedule.sourceId}>
-            <option value="">音源を選択</option>
-            {sources?.sort((a, b) => a.name.localeCompare(b.name))
-              .map(source => (
-                <option
-                  key={source.id}
-                  value={source.id}>
-                  {source.name}
-                </option>
-              ))}
-          </select>
-          <button onClick={handleAddSchedule}>スケジュール追加</button>
-        </fieldset>
+        <details>
+          <summary>スケジュール追加</summary>
+          <FormSection>
+            <FormItem>
+              <FormLabel>放送開始時刻</FormLabel>
+              <FormInput
+                onChange={e => setEditableSchedule(s => ({ ...s, scheduledAt: e.target.value }))}
+                placeholder="Scheduled Time"
+                type="datetime-local"
+                value={editableSchedule.scheduledAt} />
+            </FormItem>
+            <FormItem>
+              <FormLabel>音源</FormLabel>
+              <FormSelect
+                onChange={e => setEditableSchedule(s => ({ ...s, sourceId: Number(e.target.value) }))}
+                value={editableSchedule.sourceId}>
+                <option value="">音源を選択</option>
+                {sources?.sort((a, b) => a.name.localeCompare(b.name))
+                  .map(source => (
+                    <option
+                      key={source.id}
+                      value={source.id}>
+                      {source.name}
+                    </option>
+                  ))}
+              </FormSelect>
+            </FormItem>
+          </FormSection>
+          <FormSection>
+            <FormItem>
+              <FormButton onClick={handleAddSchedule}>
+                スケジュール追加
+              </FormButton>
+            </FormItem>
+          </FormSection>
+        </details>
 
-        <table>
-          <thead>
-            <tr>
-              <th style={{ width: '25%' }}>放送開始時刻</th>
-              <th>音源</th>
-              <th style={{ width: '25%' }}>ステータス</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {!schedules && (
-              <tr>
-                <td colSpan={4}>読み込み中です…</td>
-              </tr>
-            )}
-            {schedules?.length === 0 && (
-              <tr>
-                <td colSpan={4}>スケジュールがありません</td>
-              </tr>
-            )}
-            {schedules?.sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime())
-              .map(schedule => {
-                const source = sources?.find(s => s.id === schedule.sourceId)
-                return (
-                  <tr key={schedule.id}>
-                    <td>{schedule.scheduledAt.toLocaleString()}</td>
-                    <td>{source?.name ?? '-'}</td>
-                    <td>{schedule.timerId ? '設定済' : '-'}</td>
-                    <td>
-                      <Button onClick={() => handleDeleteSchedule(schedule.id)}>
-                        <Trash weight="fill" />
-                      </Button>
-                    </td>
-                  </tr>
-                )
-              })}
-          </tbody>
-        </table>
+        {schedules === undefined && (
+          <p>
+            読み込み中です…
+          </p>
+        )}
+        {schedules && schedules.length === 0 && (
+          <p>
+            スケジュールがありません
+          </p>
+        )}
+        {schedules && schedules.length > 0 && (
+          <ScheduleTable>
+            {schedules.sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime()).map(s => (
+              <ScheduleRow key={s.id}>
+                <ScheduleRowHeader>
+                  <ScheduleRowIndicatorLabel isActive={s.timerId !== null}>
+                    スケジュール{s.timerId ? '済' : '対象外'}
+                  </ScheduleRowIndicatorLabel>
+                  <ScheduleRowDateTime>
+                    <ScheduleRowDate>{s.scheduledAt.toLocaleDateString()}</ScheduleRowDate>
+                    <ScheduleRowTime>{s.scheduledAt.toLocaleTimeString()}</ScheduleRowTime>
+                  </ScheduleRowDateTime>
+                </ScheduleRowHeader>
+                <ScheduleRowBody>
+                  <ScheduleRowSourceName>{sources?.find(source => source.id === s.sourceId)?.name ?? '-'}</ScheduleRowSourceName>
+                  <ScheduleRowActions>
+                    <ActionButton onClick={() => handleDeleteSchedule(s.id)}>
+                      <Trash weight="fill" />
+                    </ActionButton>
+                  </ScheduleRowActions>
+                </ScheduleRowBody>
+              </ScheduleRow>
+            ))}
+          </ScheduleTable>
+        )}
 
         <h2>音源管理</h2>
 
-        <fieldset>
-          <legend>音源追加</legend>
-          <input
-            accept="audio/mp3"
-            onChange={e => setFile(e.target.files?.[0])}
-            type="file" />
-          <input
-            onChange={e => setEditableSource(s => ({ ...s, name: e.target.value }))}
-            placeholder="音源名"
-            type="text"
-            value={editableSource.name} />
-          <button onClick={handleAddSource}>音源追加</button>
-        </fieldset>
+        <details>
+          <summary>音源追加</summary>
+          <FormSection>
+            <FormItem>
+              <FormLabel>音源ファイル</FormLabel>
+              <FormInput
+                accept="audio/mp3"
+                onChange={e => setFile(e.target.files?.[0])}
+                type="file" />
+            </FormItem>
+            <FormItem>
+              <FormLabel>音源名</FormLabel>
+              <FormInput
+                onChange={e => setSourceName(e.target.value)}
+                placeholder="音源名"
+                type="text"
+                value={sourceName} />
+            </FormItem>
+          </FormSection>
+          <FormSection>
+            <FormItem>
+              <FormButton onClick={handleAddSource}>
+                音源追加
+              </FormButton>
+            </FormItem>
+          </FormSection>
+        </details>
 
-        <table>
-          <thead>
-            <tr>
-              <th>音源</th>
-              <th>再生</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {!sources && (
-              <tr>
-                <td colSpan={3}>読み込み中です…</td>
-              </tr>
-            )}
-            {sources?.length === 0 && (
-              <tr>
-                <td colSpan={3}>音源がありません</td>
-              </tr>
-            )}
+        {sources === undefined && (
+          <p>読み込み中です…</p>
+        )}
+
+        {sources && sources.length === 0 && (
+          <p>音源が登録されていません</p>
+        )}
+
+        {sources && sources.length > 0 && (
+          <SourceTable>
             {sources?.sort((a, b) => a.name.localeCompare(b.name))
               .map(source => (
-                <tr key={source.id}>
-                  <td>{source.name} <small>({source.id})</small></td>
-                  <td>
-                    <Button onClick={() => handleManualPlay(source.id)}>
-                      <Play weight="fill" />
-                    </Button>
-                  </td>
-                  <td>
-                    <Button onClick={() => handleDeleteSource(source.id)}>
-                      <Trash weight="fill" />
-                    </Button>
-                  </td>
-                </tr>
+                <SourceRow key={source.id}>
+                  <SourceRowIndicator>
+                    <SourceRowNowPlaying isActive={playingSource?.id !== source.id} />
+                  </SourceRowIndicator>
+                  <SourceRowTitle>
+                    {source.name}
+                  </SourceRowTitle>
+                  <ActionButton
+                    disabled={isMuted}
+                    onClick={() => handleManualPlay(source.id)}>
+                    <Play weight="fill" />
+                  </ActionButton>
+                  <ActionButton onClick={() => handleDeleteSource(source.id)}>
+                    <Trash weight="fill" />
+                  </ActionButton>
+                </SourceRow>
               ))}
-          </tbody>
-        </table>
+          </SourceTable>
+        )}
       </DashboardSection>
     </Container>
   )
@@ -485,13 +533,20 @@ const DashboardSection = styled.div`
 `
 const Clock = styled.div`
   padding: 20px;
-  font-size: 3em;
-  font-weight: bold;
   text-align: center;
   background-color: var(--panel-background-color);
+  font-feature-settings: 'tnum';
+  font-variant-numeric: tabular-nums;
 `
-const Indicators = styled.div`
+const ClockDate = styled.div`
+  font-size: 1.2em;
+  text-align: center;
 `
+const ClockTime = styled.div`
+  font-size: 3em;
+  font-weight: bold;
+`
+const Indicators = styled.div``
 const Indicator = styled.div`
   padding: 5px;
   padding-left: 0;
@@ -521,20 +576,6 @@ const ControlArea = styled.div`
   flex-flow: column;
   gap: 10px;
 `
-const buttonStyle = css`
-  padding: 10px;
-  font-size: 1rem;
-  outline: none;
-  border-radius: 5px;
-  border: 1px solid var(--button-border-color);
-  background-color: var(--button-background-color);
-  color: var(--button-text-color);
-  transition: background-color 0.2s ease;
-  cursor: pointer;
-  &:active {
-    background-color: var(--button-background-active-color);
-  }
-`
 const ControlButton = styled.button`
   ${buttonStyle}
 `
@@ -542,11 +583,97 @@ const LinkButton = styled(Link)`
   ${buttonStyle}
   text-decoration: none;
 `
-const Button = styled(ControlButton)`
+const ActionButton = styled(ControlButton)`
   display: inline-block;
+  height: 100%;
   svg {
     width: 18px;
     height: 18px;
-    fill: var(--button-text-color);
+    color: var(--button-text-color);
   }
+  &:disabled {
+    svg {
+      color: var(--disabled-text-color) !important;
+    }
+  }
+`
+const ScheduleTable = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+`
+const ScheduleRow = styled.div`
+  display: grid;
+  grid-template-columns: 128px 1fr;
+  gap: 10px;
+  background-color: var(--card-background-color);
+  padding: 10px;
+  border-radius: 10px;
+`
+const ScheduleRowHeader = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+`
+const ScheduleRowIndicatorLabel = styled.div<{ isActive?: boolean }>`
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  background-color: ${props => props.isActive ? 'var(--label-active-color)' : 'var(--disabled-background-color)'};
+  color: var(--indicator-text-color);
+  text-align: center;
+`
+const ScheduleRowBody = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 64px;
+  align-items: center;
+`
+const ScheduleRowDateTime = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: center;
+`
+const ScheduleRowDate = styled.span`
+  font-size: 0.75em;
+`
+const ScheduleRowTime = styled.span``
+const ScheduleRowSourceName = styled.div`
+  font-size: 1.2em;
+`
+const ScheduleRowActions = styled.div`
+  height: 100%;
+`
+const SourceTable = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+`
+const SourceRow = styled.div`
+  display: grid;
+  grid-template-columns: 48px 1fr 64px 64px;
+  gap: 5px;
+  background-color: var(--card-background-color);
+  padding: 10px;
+  border-radius: 10px;
+`
+const SourceRowIndicator = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`
+const SourceRowNowPlaying = styled.span<{ isActive?: boolean }>`
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  background-color: ${props => props.isActive ? 'var(--indicator-active-color)' : 'var(--indicator-inactive-color)'};
+  box-shadow: 0 0 10px ${props => props.isActive ? 'var(--indicator-active-color)' : 'var(--indicator-inactive-color)'};
+`
+const SourceRowTitle = styled.div`
+  display: flex;
+  align-items: center;
+  font-size: 1.2em;
 `

@@ -6,7 +6,7 @@ const inputStyle = css`
   font-weight: inherit;
 
   width: 100%;
-  padding: 5px;
+  padding: 10px;
   outline: none;
   border: 1px solid var(--border-color);
   background-color: var(--inputfield-background-color);

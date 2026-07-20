@@ -1,11 +1,11 @@
-import styled from "@emotion/styled"
-import RequiredLogin from "../../libs/RequiredLogin"
+import styled from '@emotion/styled'
+import RequiredLogin from '../../libs/RequiredLogin'
 
 interface Props {
   children: React.ReactNode
   allowAnonymous?: boolean
 }
-const DefaultLayout: React.FC<Props> = (props) => {
+const DefaultLayout: React.FC<Props> = props => {
   return (
     <RequiredLogin allowAnonymous={props.allowAnonymous}>
       <Container>
