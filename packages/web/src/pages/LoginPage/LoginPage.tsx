@@ -1,16 +1,13 @@
-import { useCallback, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useCallback } from 'react'
+import styled from '@emotion/styled'
+import FormButton from '../../components/Form/FormButton'
+import FormItem from '../../components/Form/FormItem'
+import FormSection from '../../components/Form/FormSection'
 import useNectaritionID from '../../hooks/useNectaritionID'
 import DefaultLayout from '../../layouts/DefaultLayout/DefaultLayout'
-import FormSection from '../../components/Form/FormSection'
-import FormItem from '../../components/Form/FormItem'
-import FormButton from '../../components/Form/FormButton'
-import styled from '@emotion/styled'
 
 const LoginPage: React.FC = () => {
-  const navigate = useNavigate()
   const { getAuthorizeURLAsync } = useNectaritionID()
-
 
   const handleLoginWithNectaritionID = useCallback(() => {
     getAuthorizeURLAsync(new AbortController())
@@ -20,7 +17,9 @@ const LoginPage: React.FC = () => {
   }, [getAuthorizeURLAsync])
 
   return (
-    <DefaultLayout allowAnonymous>
+    <DefaultLayout
+      allowAnonymous
+      allowInactive>
       <h1>ChronoCast ログイン</h1>
       <FormSection>
         <FormItem $inlined>

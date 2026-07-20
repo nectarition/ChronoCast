@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect } from 'react'
 import { useAtom } from 'jotai'
 import { userAtom } from '../atoms/credentials'
 import useFetch from './useFetch'
@@ -91,7 +91,7 @@ const useAccount = (): UseAccount => {
     loginAsync,
     authenticateAsync,
     loginDirectlyAsync,
-    logoutAsync,
+    logoutAsync
   }
 }
 

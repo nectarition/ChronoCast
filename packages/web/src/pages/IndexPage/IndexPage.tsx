@@ -11,9 +11,9 @@ import LinkButton from '../../components/Parts/LinkButton'
 import useAccount from '../../hooks/useAccount'
 import DefaultLayout from '../../layouts/DefaultLayout/DefaultLayout'
 
-const FolderSelectPage: React.FC = () => {
+const IndexPage: React.FC = () => {
   const navigate = useNavigate()
-  const { logoutAsync } = useAccount()
+  const { user, logoutAsync } = useAccount()
 
   const [folderKey, setFolderKey] = useState('')
 
@@ -25,32 +25,42 @@ const FolderSelectPage: React.FC = () => {
 
   const handleLogout = useCallback(() => {
     logoutAsync()
+      .then(() => navigate('/login', { replace: true }))
   }, [logoutAsync])
 
   return (
-    <DefaultLayout>
+    <DefaultLayout allowInactive>
       <h1>ChronoCast</h1>
-      <FormSection>
-        <FormItem>
-          <FormLabel>フォルダキーを入力してください</FormLabel>
-          <FormInput
-            onChange={e => setFolderKey(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="フォルダキー"
-            value={folderKey} />
-        </FormItem>
-      </FormSection>
-      <FormSection>
-        <FormItem>
-          <LinkButton
-            disabled={folderKey.trim() === ''}
-            to={`/folders/${folderKey}`}>
-            <IconLabel
-              icon={<ArrowRight />}
-              label="フォルダに移動" />
-          </LinkButton>
-        </FormItem>
-      </FormSection>
+      {user?.isActive && (
+        <>
+          <FormSection>
+            <FormItem>
+              <FormLabel>フォルダキーを入力してください</FormLabel>
+              <FormInput
+                onChange={e => setFolderKey(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="フォルダキー"
+                value={folderKey} />
+            </FormItem>
+          </FormSection>
+          <FormSection>
+            <FormItem>
+              <LinkButton
+                disabled={folderKey.trim() === ''}
+                to={`/folders/${folderKey}`}>
+                <IconLabel
+                  icon={<ArrowRight />}
+                  label="フォルダに移動" />
+              </LinkButton>
+            </FormItem>
+          </FormSection>
+        </>
+      )}
+      {!user?.isActive && (
+        <p>
+          アカウントがロックされています。管理者にお問い合わせください。
+        </p>
+      )}
       <FormSection>
         <FormItem>
           <FormButton onClick={handleLogout}>
@@ -64,4 +74,4 @@ const FolderSelectPage: React.FC = () => {
   )
 }
 
-export default FolderSelectPage
+export default IndexPage

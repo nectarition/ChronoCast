@@ -1,7 +1,7 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import CastPage from './pages/CastPage/CastPage'
-import FolderSelectPage from './pages/FolderSelectPage/FolderSelectPage'
+import IndexPage from './pages/IndexPage/IndexPage'
 import LoginPage from './pages/LoginPage/LoginPage'
 import OIDCCallbackPage from './pages/OIDCCallbackPage/OIDCCallbackPage'
 import AuthenticationProvider from './providers/AuthenticationProvider'
@@ -17,7 +17,7 @@ const router = createBrowserRouter([
   },
   {
     index: true,
-    element: <FolderSelectPage />
+    element: <IndexPage />
   },
   {
     path: 'folders/:folderKey',
