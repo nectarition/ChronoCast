@@ -249,7 +249,7 @@ const CastPage: React.FC = () => {
       })
       .catch(err => {
         if (err.name !== 'APIError') return
-        toast.error('音源の読み込みに失敗しました')
+        toast.error(err.message)
         throw err
       })
     return () => abort.abort()
@@ -294,7 +294,8 @@ const CastPage: React.FC = () => {
         toast.success('スケジュールを読み込みました')
       })
       .catch(err => {
-        toast.error('スケジュールの読み込みに失敗しました')
+        if (err.name !== 'APIError') return
+        toast.error(err.message)
         throw err
       })
   }, [folderKey, initialSources, getSchedulesByFolderKeyAsync, addQueue])
