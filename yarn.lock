@@ -178,6 +178,18 @@
     "@smithy/types" "^4.16.1"
     tslib "^2.6.2"
 
+"@aws-sdk/s3-request-presigner@^3.1090.0":
+  version "3.1091.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/s3-request-presigner/-/s3-request-presigner-3.1091.0.tgz#bc96df05e99486882aa50eb38a4bcd618d5eb7ab"
+  integrity sha512-BdF1FNOhYyif/tAN0uvTnjo/IC/JkgKfBbQ8PwtM2uDy2Mq95aK8khS+kF8ZK64wxU3M0f0wLlAXTrGxOHtrUQ==
+  dependencies:
+    "@aws-sdk/core" "^3.975.3"
+    "@aws-sdk/signature-v4-multi-region" "^3.996.41"
+    "@aws-sdk/types" "^3.974.2"
+    "@smithy/core" "^3.29.4"
+    "@smithy/types" "^4.16.1"
+    tslib "^2.6.2"
+
 "@aws-sdk/signature-v4-multi-region@^3.996.41":
   version "3.996.41"
   resolved "https://registry.yarnpkg.com/@aws-sdk/signature-v4-multi-region/-/signature-v4-multi-region-3.996.41.tgz#1ac6743366e2382b73ed14af4b08d21de0bf1ed9"
@@ -2728,7 +2740,7 @@ cross-spawn@^7.0.2, cross-spawn@^7.0.6:
     shebang-command "^2.0.0"
     which "^2.0.1"
 
-csstype@^3.0.2, csstype@^3.2.2:
+csstype@^3.0.2, csstype@^3.1.3, csstype@^3.2.2:
   version "3.2.3"
   resolved "https://registry.yarnpkg.com/csstype/-/csstype-3.2.3.tgz#ec48c0f3e993e50648c86da559e2610995cf989a"
   integrity sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==
@@ -3642,6 +3654,11 @@ globalthis@^1.0.4:
   dependencies:
     define-properties "^1.2.1"
     gopd "^1.0.1"
+
+goober@^2.1.16:
+  version "2.1.19"
+  resolved "https://registry.yarnpkg.com/goober/-/goober-2.1.19.tgz#a4b4dcdbba9325b8c4d7380099f9f281f27c6a6f"
+  integrity sha512-U7veizMqxyKlM58+Z5j2ngJBH/r9siDmxpvNxSw0PylF6WQvrASJEZrxh1hidRBJc2jqoBVSyOban5u8m+6Rxg==
 
 gopd@^1.0.1, gopd@^1.2.0:
   version "1.2.0"
@@ -4563,6 +4580,14 @@ react-dom@^19.0.0:
   dependencies:
     scheduler "^0.27.0"
 
+react-hot-toast@^2.6.0:
+  version "2.6.0"
+  resolved "https://registry.yarnpkg.com/react-hot-toast/-/react-hot-toast-2.6.0.tgz#4ada6ed3c75c5e42a90d562f55665ff37ee1442b"
+  integrity sha512-bH+2EBMZ4sdyou/DPrfgIouFpcRLCJ+HoCA32UoAYHn6T3Ur5yfcDCeSr5mwldl6pFOsiocmrXMuoCJ1vV8bWg==
+  dependencies:
+    csstype "^3.1.3"
+    goober "^2.1.16"
+
 react-is@^16.13.1, react-is@^16.7.0:
   version "16.13.1"
   resolved "https://registry.yarnpkg.com/react-is/-/react-is-16.13.1.tgz#789729a4dc36de2999dc156dd6c1d9c18cea56a4"
@@ -5319,7 +5344,7 @@ workerd@1.20260714.1:
     "@cloudflare/workerd-linux-arm64" "1.20260714.1"
     "@cloudflare/workerd-windows-64" "1.20260714.1"
 
-wrangler@^4.58.0:
+wrangler@^4.112.0, wrangler@^4.58.0:
   version "4.112.0"
   resolved "https://registry.yarnpkg.com/wrangler/-/wrangler-4.112.0.tgz#b29e516e0dd69c41493a43105bd852802aabc43c"
   integrity sha512-5H+XUD0TySCv1LuktFHDIEOkboH2nTfQs+35L+USt3MtntjDTMVIJprLgQcL2WBjulOyjxpd1vyTiSTJVW5MjQ==
