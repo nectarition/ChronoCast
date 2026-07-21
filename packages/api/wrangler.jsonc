@@ -13,6 +13,20 @@
 			"database_id": "b3467c4d-be4b-4d31-a6cd-e073ba7d0fbf"
 		}
 	],
+	"durable_objects": {
+		"bindings": [
+			{
+				"name": "FOLDER_DO",
+				"class_name": "FolderDurableObject"
+			}
+		]
+	},
+	"migrations": [
+		{
+			"tag": "v1",
+			"new_sqlite_classes": ["FolderDurableObject"]
+		}
+	],
 	"vars": {
 		"CLOUDFLARE_ACCOUNT_ID": "1dff13d46b875e68df586a01437fa324",
 		"S3_ACCESS_KEY_ID": "bc5fec5b3fcc2e3dbacd8f16dce95ace",
@@ -36,6 +50,14 @@
 					"database_id": "b3467c4d-be4b-4d31-a6cd-e073ba7d0fbf"
 				}
 			],
+			"durable_objects": {
+				"bindings": [
+					{
+						"name": "FOLDER_DO",
+						"class_name": "FolderDurableObject"
+					}
+				]
+			},
 		}
 	},
 	"observability": {

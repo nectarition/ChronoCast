@@ -31,3 +31,43 @@ export type Schedule = {
   sourceId: number
   scheduledAt: Date
 }
+
+namespace Socket {
+  export type SchedulePlayEvent = {
+    type: 'SCHEDULE_PLAY'
+    scheduleId: number
+    sourceId: number
+  }
+  export type ScheduleAddEvent = {
+    type: 'SCHEDULE_ADD'
+    scheduleId: number
+    sourceId: number
+    scheduledAt: number
+  }
+  export type ScheduleRemoveEvent = {
+    type: 'SCHEDULE_REMOVE'
+    scheduleId: number
+  }
+  export type ScheduleNextEvent = {
+    type: 'SCHEDULE_NEXT'
+    scheduleId: number | null
+  }
+  export type SourceAddEvent = {
+    type: 'SOURCE_ADD'
+    sourceId: number
+    folderKey: string
+    name: string
+  }
+  export type SourceRemoveEvent = {
+    type: 'SOURCE_REMOVE'
+    sourceId: number
+  }
+
+  export type Event =
+    SchedulePlayEvent
+    | ScheduleNextEvent
+    | ScheduleAddEvent
+    | ScheduleRemoveEvent
+    | SourceAddEvent
+    | SourceRemoveEvent
+}

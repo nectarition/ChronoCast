@@ -19,15 +19,12 @@ import FormSection from '../../components/Form/FormSection'
 import FormSelect from '../../components/Form/FormSelect'
 import IconLabel from '../../components/Parts/IconLabel'
 import buttonStyle from '../../components/mixins/buttonStyle'
-import useCast from '../../hooks/useCast'
+import useCast, { ConnectionStatusType } from '../../hooks/useCast'
 import CastLayout from '../../layouts/CastLayout/CastLayout'
 import type { Schedule, Source } from 'chronocast'
 
 type SourceWithURL = Source & {
   url: string
-}
-type ScheduleWithTimeId = Schedule & {
-  timerId: NodeJS.Timeout | null
 }
 
 const CastPage: React.FC = () => {
@@ -40,12 +37,14 @@ const CastPage: React.FC = () => {
     deleteScheduleAsync,
     deleteSourceAsync,
     getSourceURLAsync,
-    uploadSourceAsync
+    uploadSourceAsync,
+    connectSocket
   } = useCast()
 
   const [now, setNow] = useState(new Date())
   const audioRef = useRef<HTMLAudioElement>(null)
   const [isMuted, setIsMuted] = useState(true)
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatusType>()
 
   const [playingSource, setPlayingSource] = useState<SourceWithURL | null>()
   const [currentTime, setCurrentTime] = useState(0)
@@ -53,7 +52,8 @@ const CastPage: React.FC = () => {
 
   const [initialSources, setInitialSources] = useState<SourceWithURL[]>()
   const [sources, setSources] = useState<SourceWithURL[]>()
-  const [schedules, setSchedules] = useState<ScheduleWithTimeId[]>()
+  const [schedules, setSchedules] = useState<Schedule[]>()
+  const [nextScheduleId, setNextScheduleId] = useState<number | null>(null)
 
   const [file, setFile] = useState<File>()
   const [sourceName, setSourceName] = useState('')
@@ -89,22 +89,6 @@ const CastPage: React.FC = () => {
       .catch(err => console.error('Playback failed:', err))
   }, [])
 
-  const addQueue = useCallback((sourceId: number, timeSpan: number) => {
-    if (!sources) return
-    if (timeSpan < 0) return
-    const source = sources.find(s => s.id === sourceId)
-    if (!source) return
-    const timerId = setTimeout(() => {
-      playWithSource(source)
-      setSchedules(s => {
-        if (!s) return
-        const newSchedules = s.map(schedule => schedule.timerId === timerId ? { ...schedule, timerId: null } : schedule)
-        return newSchedules
-      })
-    }, timeSpan)
-    return timerId
-  }, [sources, playWithSource])
-
   const formatSeconds = useCallback((seconds: number) => {
     const minutes = Math.floor(seconds / 60)
     const remainingSeconds = Math.ceil(seconds % 60)
@@ -129,18 +113,10 @@ const CastPage: React.FC = () => {
     }
     const abort = new AbortController()
     addScheduleAsync(folderKey, schedule, abort)
-      .then(id => {
+      .then(() => {
         const source = sources.find(s => s.id === schedule.sourceId)
         if (!source) return
 
-        const timerId = addQueue(source.id, schedule.scheduledAt.getTime() - new Date().getTime())
-        if (!timerId) return
-
-        setSchedules(s => s && ([...s, {
-          ...schedule,
-          id,
-          timerId
-        }]))
         setEditableSchedule({
           sourceId: 0,
           scheduledAt: ''
@@ -152,25 +128,13 @@ const CastPage: React.FC = () => {
         toast.error('追加に失敗しました')
         throw err
       })
-  }, [folderKey, editableSchedule, sources, addQueue])
+  }, [folderKey, editableSchedule, sources, addScheduleAsync])
 
   const handleDeleteSchedule = useCallback((scheduleId: number) => {
     if (!folderKey || !schedules) return
     if (!confirm('削除しますか？')) return
     const abort = new AbortController()
     deleteScheduleAsync(folderKey, scheduleId, abort)
-      .then(() => {
-        const schedule = schedules.find(s => s.id === scheduleId)
-        if (schedule?.timerId) {
-          clearTimeout(schedule.timerId)
-        }
-        setSchedules(s => {
-          if (!s) return
-          const newSchedules = s.filter(schedule => schedule.id !== scheduleId)
-          return newSchedules
-        })
-        toast.success('スケジュールを削除しました')
-      })
       .catch(err => {
         toast.error('削除に失敗しました')
         throw err
@@ -185,42 +149,26 @@ const CastPage: React.FC = () => {
       .then(id => {
         uploadSourceAsync(folderKey, id, file, abort)
           .then(async () => {
-            const url = await getSourceURLAsync(folderKey, id, abort)
-            setSources(s => s && ([...s, {
-              name: sourceName,
-              folderKey,
-              id,
-              url
-            }]))
             setSourceName('')
             setFile(undefined)
-            toast.success('音源を追加しました')
           })
       })
       .catch(err => {
         toast.error('音源の追加に失敗しました')
         throw err
       })
-  }, [folderKey, file, sourceName])
+  }, [folderKey, file, sourceName, addSourceAsync, uploadSourceAsync, getSourceURLAsync])
 
   const handleDeleteSource = useCallback((sourceId: number) => {
     if (!folderKey) return
     if (!confirm('音源を削除しますか？')) return
     const abort = new AbortController()
     deleteSourceAsync(folderKey, sourceId, abort)
-      .then(() => {
-        setSources(s => {
-          if (!s) return
-          const newSources = s.filter(source => source.id !== sourceId)
-          return newSources
-        })
-        toast.success('音源を削除しました')
-      })
       .catch(err => {
         toast.error('音源の削除に失敗しました')
         throw err
       })
-  }, [folderKey])
+  }, [folderKey, deleteSourceAsync])
 
   const handleManualPlay = useCallback((sourceId: number) => {
     if (isMuted || !sources) return
@@ -272,38 +220,8 @@ const CastPage: React.FC = () => {
     if (!folderKey || !initialSources) return
     const abort = new AbortController()
     getSchedulesByFolderKeyAsync(folderKey, abort)
-      .then(async fetchedSchedules => {
-        const schedulesWithTimeIds = await Promise.all(fetchedSchedules.map(async schedule => {
-          const timeSpan = schedule.scheduledAt.getTime() - new Date().getTime()
-          if (timeSpan < 0 || timeSpan > 24 * 60 * 60 * 1000) {
-            return {
-              ...schedule,
-              timerId: null
-            }
-          }
-
-          const source = initialSources.find(s => s.id === schedule.sourceId)
-          if (!source) {
-            return {
-              ...schedule,
-              timerId: null
-            }
-          }
-
-          const timerId = addQueue(source.id, timeSpan)
-          if (!timerId) {
-            return {
-              ...schedule,
-              timerId: null
-            }
-          }
-
-          return {
-            ...schedule,
-            timerId
-          }
-        }))
-        setSchedules(schedulesWithTimeIds)
+      .then(fetchedSchedules => {
+        setSchedules(fetchedSchedules)
         toast.success('スケジュールを読み込みました')
       })
       .catch(err => {
@@ -313,13 +231,69 @@ const CastPage: React.FC = () => {
       })
     return () => {
       abort.abort()
-      schedules?.forEach(schedule => {
-        if (schedule.timerId) {
-          clearTimeout(schedule.timerId)
-        }
-      })
     }
-  }, [folderKey, initialSources, getSchedulesByFolderKeyAsync, addQueue])
+  }, [folderKey, initialSources, getSchedulesByFolderKeyAsync])
+
+  useEffect(() => {
+    if (!folderKey || !sources) return
+    const abort = new AbortController()
+    const disconnectSocket = connectSocket(
+      folderKey,
+      event => {
+        switch (event.type) {
+          case 'SOURCE_ADD': {
+            const newSource: SourceWithURL = {
+              id: event.sourceId,
+              folderKey: event.folderKey,
+              name: event.name,
+              url: ''
+            }
+            getSourceURLAsync(event.folderKey, event.sourceId, abort)
+              .then(url => {
+                newSource.url = url
+                setSources(s => s && ([...s, newSource]))
+                toast.success('音源が追加されました')
+              })
+            return
+          }
+          case 'SOURCE_REMOVE':
+            setSources(s => s && s.filter(source => source.id !== event.sourceId))
+            toast.success('音源が削除されました')
+            return
+          case 'SCHEDULE_NEXT':
+            setNextScheduleId(event.scheduleId)
+            return
+          case 'SCHEDULE_PLAY': {
+            const source = sources.find(s => s.id === event.sourceId)
+            if (!source) return
+            playWithSource(source)
+            return
+          }
+          case 'SCHEDULE_ADD': {
+            const source = sources.find(s => s.id === event.sourceId)
+            if (!source) return
+            setSchedules(s => s && ([...s, {
+              id: event.scheduleId,
+              sourceId: event.sourceId,
+              scheduledAt: new Date(event.scheduledAt)
+            }]))
+            toast.success('スケジュールが追加されました')
+            return
+          }
+          case 'SCHEDULE_REMOVE':
+            setSchedules(s => s && s.filter(schedule => schedule.id !== event.scheduleId))
+            toast.success('スケジュールが削除されました')
+            return
+        }
+      },
+      setConnectionStatus)
+    if (!disconnectSocket) return
+
+    return () => {
+      disconnectSocket()
+      abort.abort()
+    }
+  }, [folderKey, sources, connectSocket, playWithSource, getSourceURLAsync])
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -346,20 +320,32 @@ const CastPage: React.FC = () => {
           </Clock>
           <Indicators>
             <Indicator>
-              <IndicatorStatusIcon isActive={isMuted} />
+              <IndicatorStatusIcon isActive={!isMuted} />
               <IndicatorText>{isMuted ? 'ミュート中' : 'ミュート解除中'}</IndicatorText>
             </Indicator>
             <Indicator>
-              <IndicatorStatusIcon isActive={!playingSource} />
+              <IndicatorStatusIcon isActive={!!playingSource} />
               <IndicatorText>音源: {playingSource?.name ?? '-'}</IndicatorText>
             </Indicator>
             <Indicator>
-              <IndicatorStatusIcon isActive={!playingSource} />
+              <IndicatorStatusIcon isActive={!!playingSource} />
               <IndicatorText>再生位置: {formatSeconds(currentTime)}/{formatSeconds(duration)}</IndicatorText>
             </Indicator>
             <Indicator>
-              <IndicatorStatusIcon isActive={!folderKey} />
+              <IndicatorStatusIcon isActive={!!folderKey} />
               <IndicatorText>フォルダ: {folderKey}</IndicatorText>
+            </Indicator>
+            <Indicator>
+              <IndicatorStatusIcon isActive={connectionStatus === 'open'} />
+              <IndicatorText>
+                フォルダ同期: {
+                  connectionStatus === 'open'
+                    ? '同期完了'
+                    : connectionStatus === 'connecting'
+                      ? '同期処理中'
+                      : '未同期'
+                }
+              </IndicatorText>
             </Indicator>
           </Indicators>
           <ControlArea>
@@ -445,8 +431,14 @@ const CastPage: React.FC = () => {
               {schedules.sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime()).map(s => (
                 <ScheduleRow key={s.id}>
                   <ScheduleRowHeader>
-                    <ScheduleRowIndicatorLabel isActive={s.timerId !== null}>
-                      スケジュール{s.timerId ? '済' : '対象外'}
+                    <ScheduleRowIndicatorLabel isActive={s.id === nextScheduleId}>
+                      {
+                        s.id === nextScheduleId
+                          ? '次に放送'
+                          : s.scheduledAt < now
+                            ? '放送済み'
+                            : 'スケジュール済み'
+                      }
                     </ScheduleRowIndicatorLabel>
                     <ScheduleRowDateTime>
                       <ScheduleRowDate>{s.scheduledAt.toLocaleDateString()}</ScheduleRowDate>
@@ -510,7 +502,7 @@ const CastPage: React.FC = () => {
                 .map(source => (
                   <SourceRow key={source.id}>
                     <SourceRowIndicator>
-                      <SourceRowNowPlaying isActive={playingSource?.id !== source.id} />
+                      <SourceRowNowPlaying isActive={playingSource?.id === source.id} />
                     </SourceRowIndicator>
                     <SourceRowTitle>
                       {source.name}
