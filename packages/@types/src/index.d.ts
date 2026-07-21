@@ -33,6 +33,10 @@ export type Schedule = {
 }
 
 namespace Socket {
+  export type ConnectionUpdateEvent = {
+    type: 'CONNECTION_UPDATE'
+    connectionCount: number
+  }
   export type SchedulePlayEvent = {
     type: 'SCHEDULE_PLAY'
     scheduleId: number
@@ -64,7 +68,8 @@ namespace Socket {
   }
 
   export type Event =
-    SchedulePlayEvent
+    | ConnectionUpdateEvent
+    | SchedulePlayEvent
     | ScheduleNextEvent
     | ScheduleAddEvent
     | ScheduleRemoveEvent
