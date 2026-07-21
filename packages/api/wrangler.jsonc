@@ -1,0 +1,44 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "nct-chronocast-api",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-07-20",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "d1-nct-chronocast",
+			"database_id": "b3467c4d-be4b-4d31-a6cd-e073ba7d0fbf"
+		}
+	],
+	"vars": {
+		"CLOUDFLARE_ACCOUNT_ID": "1dff13d46b875e68df586a01437fa324",
+		"S3_ACCESS_KEY_ID": "bc5fec5b3fcc2e3dbacd8f16dce95ace",
+		"S3_BUCKET_NAME": "chronocast",
+		"ALLOWED_ORIGINS": "http://localhost:5173",
+		"OIDC_CALLBACK_URI": "http://localhost:5173/oidc/callback"
+	},
+	"env": {
+		"prod": {
+			"vars": {
+				"CLOUDFLARE_ACCOUNT_ID": "1dff13d46b875e68df586a01437fa324",
+				"S3_ACCESS_KEY_ID": "bc5fec5b3fcc2e3dbacd8f16dce95ace",
+				"S3_BUCKET_NAME": "chronocast",
+				"ALLOWED_ORIGINS": "https://cast.nectarition.jp",
+				"OIDC_CALLBACK_URI": "https://cast.nectarition.jp/oidc/callback"
+			}
+		}
+	},
+	"observability": {
+		"enabled": false,
+		"head_sampling_rate": 1,
+		"logs": {
+			"enabled": true,
+			"head_sampling_rate": 1,
+			"persist": true,
+			"invocation_logs": true
+		}
+	}
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "nct-chronocast-web",
+  "pages_build_output_dir": "./dist",
+  "env": {
+    "production": {
+      "vars": {
+        "NODE_VERSION": "24",
+        "VITE_API_BASE_URL": "https://nct-chronocast-api-prod.nctr.workers.dev"
+
+      }
+    },
+    "preview": {
+      "vars": {
+        "NODE_VERSION": "24",
+        "VITE_API_BASE_URL": "https://nct-chronocast-api-prod.nctr.workers.dev"
+      }
+    }
+  }
+}

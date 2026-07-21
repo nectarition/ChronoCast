@@ -2,11 +2,9 @@ import eslint from '@eslint/js'
 import stylistic from '@stylistic/eslint-plugin'
 import stylisticJSX from '@stylistic/eslint-plugin-jsx'
 import importPlugin from 'eslint-plugin-import'
-import reactJSXRuntime from 'eslint-plugin-react/configs/jsx-runtime.js'
-import reactRecommended from 'eslint-plugin-react/configs/recommended.js'
 import tseslint from 'typescript-eslint'
 
-export default tseslint.config(
+export default tseslint.config([
   {
     ignores: ['**/lib/**', '**/dist/**']
   },
@@ -66,7 +64,7 @@ export default tseslint.config(
   {
     files: ['**/*.{js,ts,jsx,tsx}'],
     settings: {
-      typescript: {}
+      typescript: { }
     },
     rules: {
       'import/no-unresolved': 'off',
@@ -99,32 +97,5 @@ export default tseslint.config(
         }
       ]
     }
-  },
-  reactRecommended,
-  reactJSXRuntime,
-  {
-    files: ['**/*.{js,jsx,ts,tsx}'],
-    settings: {
-      react: {
-        version: 'detect'
-      }
-    },
-    languageOptions: {
-      ...reactRecommended.languageOptions,
-      ...reactJSXRuntime.languageOptions
-    },
-    rules: {
-      ...reactRecommended.rules,
-      ...reactJSXRuntime.rules,
-      'react/prop-types': 'off',
-      'react/react-in-jsx-scope': 'off',
-      'react/jsx-closing-bracket-location': ['error', 'after-props'],
-      'react/function-component-definition': [
-        2,
-        {
-          namedComponents: 'arrow-function'
-        }
-      ]
-    }
   }
-)
+])
