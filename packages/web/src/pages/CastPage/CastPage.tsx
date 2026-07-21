@@ -45,6 +45,7 @@ const CastPage: React.FC = () => {
   const audioRef = useRef<HTMLAudioElement>(null)
   const [isMuted, setIsMuted] = useState(true)
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatusType>()
+  const [connectionCount, setConnectionCount] = useState(0)
 
   const [playingSource, setPlayingSource] = useState<SourceWithURL | null>()
   const [currentTime, setCurrentTime] = useState(0)
@@ -98,11 +99,15 @@ const CastPage: React.FC = () => {
   }, [])
 
   const handleAddSchedule = useCallback(() => {
-    if (!folderKey || !sources) return
+    if (!folderKey || !sources || !schedules) return
 
     const now = new Date()
     if (now.getTime() > new Date(editableSchedule.scheduledAt).getTime()) {
       toast.error('過去の時刻は指定できません')
+      return
+    }
+    else if (schedules.some(s => s.scheduledAt.getTime() === new Date(editableSchedule.scheduledAt).getTime())) {
+      toast.error('同じ時刻のスケジュールは追加できません')
       return
     }
 
@@ -114,15 +119,10 @@ const CastPage: React.FC = () => {
     const abort = new AbortController()
     addScheduleAsync(folderKey, schedule, abort)
       .then(() => {
-        const source = sources.find(s => s.id === schedule.sourceId)
-        if (!source) return
-
         setEditableSchedule({
           sourceId: 0,
           scheduledAt: ''
         })
-
-        toast.success('スケジュールを追加しました')
       })
       .catch(err => {
         toast.error('追加に失敗しました')
@@ -131,7 +131,7 @@ const CastPage: React.FC = () => {
   }, [folderKey, editableSchedule, sources, addScheduleAsync])
 
   const handleDeleteSchedule = useCallback((scheduleId: number) => {
-    if (!folderKey || !schedules) return
+    if (!folderKey) return
     if (!confirm('削除しますか？')) return
     const abort = new AbortController()
     deleteScheduleAsync(folderKey, scheduleId, abort)
@@ -139,7 +139,7 @@ const CastPage: React.FC = () => {
         toast.error('削除に失敗しました')
         throw err
       })
-  }, [folderKey, schedules, deleteScheduleAsync])
+  }, [folderKey, deleteScheduleAsync])
 
   const handleAddSource = useCallback(() => {
     if (!folderKey || !file || !sourceName) return
@@ -157,7 +157,7 @@ const CastPage: React.FC = () => {
         toast.error('音源の追加に失敗しました')
         throw err
       })
-  }, [folderKey, file, sourceName, addSourceAsync, uploadSourceAsync, getSourceURLAsync])
+  }, [folderKey, file, sourceName, addSourceAsync, uploadSourceAsync])
 
   const handleDeleteSource = useCallback((sourceId: number) => {
     if (!folderKey) return
@@ -241,6 +241,9 @@ const CastPage: React.FC = () => {
       folderKey,
       event => {
         switch (event.type) {
+          case 'CONNECTION_UPDATE':
+            setConnectionCount(event.connectionCount)
+            return
           case 'SOURCE_ADD': {
             const newSource: SourceWithURL = {
               id: event.sourceId,
@@ -293,7 +296,7 @@ const CastPage: React.FC = () => {
       disconnectSocket()
       abort.abort()
     }
-  }, [folderKey, sources, connectSocket, playWithSource, getSourceURLAsync])
+  }, [folderKey, sources, connectSocket, getSourceURLAsync])
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -344,7 +347,7 @@ const CastPage: React.FC = () => {
                     : connectionStatus === 'connecting'
                       ? '同期処理中'
                       : '未同期'
-                }
+                } (端末数: {connectionCount})
               </IndicatorText>
             </Indicator>
           </Indicators>

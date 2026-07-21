@@ -160,6 +160,24 @@ export class FolderDurableObject extends DurableObject<Env> {
     this.broadcastNextScheduleId(now)
   }
 
+  private broadcastConnectionCount(excludeWS?: WebSocket): void {
+    const wss = this.ctx.getWebSockets()
+      .filter(ws => ws !== excludeWS)
+    const payload: Socket.ConnectionUpdateEvent = {
+      type: 'CONNECTION_UPDATE',
+      connectionCount: wss.length
+    }
+    for (const ws of wss) {
+      if (ws === excludeWS) continue
+      try {
+        ws.send(JSON.stringify(payload))
+      }
+      catch (err) {
+        console.error('Failed to send connection update notification:', err)
+      }
+    }
+  }
+
   async alarm(): Promise<void> {
     const now = new Date()
     const dueSchedules = this.ctx.storage.sql
@@ -199,15 +217,20 @@ export class FolderDurableObject extends DurableObject<Env> {
     const pair = new WebSocketPair()
     this.ctx.acceptWebSocket(pair[1])
     const now = new Date()
-    const payload: Socket.ScheduleNextEvent = {
+
+    const scheduleNextPayload: Socket.ScheduleNextEvent = {
       type: 'SCHEDULE_NEXT',
       scheduleId: this.getNextScheduleId(now)
     }
-    pair[1].send(JSON.stringify(payload))
+    pair[1].send(JSON.stringify(scheduleNextPayload))
+
+    this.broadcastConnectionCount()
+
     return new Response(null, { status: 101, webSocket: pair[0] })
   }
 
   async webSocketClose(ws: WebSocket, code: number, reason: string): Promise<void> {
     ws.close(code, reason)
+    this.broadcastConnectionCount(ws)
   }
 }
