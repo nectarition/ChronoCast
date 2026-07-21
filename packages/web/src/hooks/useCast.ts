@@ -74,8 +74,8 @@ const useCast = (): IUseCast => {
     const wsURL = new URL(`/folders/${folderKey}/ws`, baseURL)
     wsURL.protocol = wsProtocol
     wsURL.searchParams.set('token', apiToken)
-    let ws: WebSocket | null = null
 
+    let ws: WebSocket | null = null
     let retryCount = 0
     let retryTimer: ReturnType<typeof setTimeout> | null = null
     let closedByClient = false
@@ -115,12 +115,12 @@ const useCast = (): IUseCast => {
     connect()
 
     return () => {
-      closedByClient = true
       if (retryTimer) {
         clearTimeout(retryTimer)
         retryTimer = null
       }
-      ws?.close()
+      ws?.close(1000, 'Client closed connection')
+      closedByClient = true
     }
   }, [apiToken])
 

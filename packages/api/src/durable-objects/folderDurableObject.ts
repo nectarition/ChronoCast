@@ -230,7 +230,14 @@ export class FolderDurableObject extends DurableObject<Env> {
   }
 
   async webSocketClose(ws: WebSocket, code: number, reason: string): Promise<void> {
-    ws.close(code, reason)
-    this.broadcastConnectionCount(ws)
+    try {
+      ws.close(code, reason)
+    }
+    catch (err) {
+      console.error('Error during WebSocket close:', err)
+    }
+    finally {
+      this.broadcastConnectionCount(ws)
+    }
   }
 }
