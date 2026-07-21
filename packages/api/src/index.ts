@@ -1,12 +1,14 @@
+import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import errorHandler from './middlewares/errorHandler'
 import { pathNormalization } from './middlewares/pathNormalization'
 import prisma from './middlewares/prisma'
 import s3 from './middlewares/s3'
 import accountsRouter from './routes/accountsRouter'
-import type { APIContext, APIEnv } from './@types'
-import { Hono } from 'hono'
 import foldersRouter from './routes/foldersRouter'
+import type { APIContext, APIEnv } from './@types'
+
+export { FolderDurableObject } from './durable-objects/folderDurableObject'
 
 const app = new Hono<APIEnv>()
 
