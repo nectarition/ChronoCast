@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import styled from '@emotion/styled'
-import { ArrowLeft, Play, SpeakerSimpleHigh, SpeakerSimpleSlash, Stop, Trash } from '@phosphor-icons/react'
+import {
+  ArrowClockwiseIcon,
+  ArrowLeftIcon,
+  PlayIcon,
+  SpeakerSimpleHighIcon,
+  SpeakerSimpleSlashIcon,
+  StopIcon,
+  TrashIcon
+} from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import FormButton from '../../components/Form/FormButton'
 import FormInput from '../../components/Form/FormInput'
@@ -231,13 +239,13 @@ const CastPage: React.FC = () => {
     setCurrentTime(audioRef.current.currentTime)
   }, [])
 
-  useEffect(() => {
+  const handleRefresh = useCallback((abort?: AbortController) => {
     if (!folderKey) return
-    const abort = new AbortController()
-    getSourcesByFolderKeyAsync(folderKey, abort)
+    const abortController = abort ?? new AbortController()
+    getSourcesByFolderKeyAsync(folderKey, abortController)
       .then(async fetchedSources => {
         const sourcesWithUrls = await Promise.all(fetchedSources.map(async source => {
-          const url = await getSourceURLAsync(source.folderKey, source.id, abort)
+          const url = await getSourceURLAsync(source.folderKey, source.id, abortController)
           return {
             ...source,
             url
@@ -252,8 +260,13 @@ const CastPage: React.FC = () => {
         toast.error(err.message)
         throw err
       })
+  }, [folderKey, getSourcesByFolderKeyAsync, getSourceURLAsync])
+
+  useEffect(() => {
+    const abort = new AbortController()
+    handleRefresh(abort)
     return () => abort.abort()
-  }, [folderKey, getSourcesByFolderKeyAsync])
+  }, [handleRefresh])
 
   useEffect(() => {
     if (!folderKey || !initialSources) return
@@ -344,19 +357,26 @@ const CastPage: React.FC = () => {
           <ControlArea>
             <ControlButton onClick={() => setIsMuted(m => !m)}>
               <IconLabel
-                icon={isMuted ? <SpeakerSimpleHigh weight="regular" /> : <SpeakerSimpleSlash weight="regular" />}
+                icon={isMuted ? <SpeakerSimpleHighIcon weight="regular" /> : <SpeakerSimpleSlashIcon weight="regular" />}
                 label={`ミュート${isMuted ? 'を解除する' : 'する'}`} />
             </ControlButton>
             <ControlButton onClick={stopAudio}>
               <IconLabel
-                icon={<Stop />}
+                icon={<StopIcon />}
                 label="再生中の音源を停止する" />
+            </ControlButton>
+          </ControlArea>
+          <ControlArea>
+            <ControlButton onClick={() => handleRefresh()}>
+              <IconLabel
+                icon={<ArrowClockwiseIcon />}
+                label="最新の情報に更新する" />
             </ControlButton>
           </ControlArea>
           <ControlArea>
             <LinkButton to="/">
               <IconLabel
-                icon={<ArrowLeft />}
+                icon={<ArrowLeftIcon />}
                 label="フォルダ選択に戻る" />
             </LinkButton>
           </ControlArea>
@@ -429,7 +449,7 @@ const CastPage: React.FC = () => {
                     <ScheduleRowSourceName>{sources?.find(source => source.id === s.sourceId)?.name ?? '-'}</ScheduleRowSourceName>
                     <ScheduleRowActions>
                       <ActionButton onClick={() => handleDeleteSchedule(s.id)}>
-                        <Trash weight="fill" />
+                        <TrashIcon weight="fill" />
                       </ActionButton>
                     </ScheduleRowActions>
                   </ScheduleRowBody>
@@ -490,10 +510,10 @@ const CastPage: React.FC = () => {
                     <ActionButton
                       disabled={isMuted}
                       onClick={() => handleManualPlay(source.id)}>
-                      <Play weight="fill" />
+                      <PlayIcon weight="fill" />
                     </ActionButton>
                     <ActionButton onClick={() => handleDeleteSource(source.id)}>
-                      <Trash weight="fill" />
+                      <TrashIcon weight="fill" />
                     </ActionButton>
                   </SourceRow>
                 ))}
