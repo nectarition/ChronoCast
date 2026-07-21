@@ -20,6 +20,10 @@ export type LoginResult = {
   user: LoggedInUser
 }
 
+export type Folder = {
+  key: string
+}
+
 export type Source = {
   id: number
   folderKey: string

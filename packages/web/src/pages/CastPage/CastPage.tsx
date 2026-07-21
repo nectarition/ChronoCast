@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import styled from '@emotion/styled'
 import {
@@ -62,6 +62,12 @@ const CastPage: React.FC = () => {
     sourceId: 0,
     scheduledAt: ''
   })
+
+  const isActive = useMemo(() => {
+    if (connectionStatus !== 'open' || isMuted) return null
+    if (connectionStatus === 'open' && isMuted) return false
+    return !!playingSource
+  }, [connectionStatus, isMuted, playingSource])
 
   const resetDuration = useCallback(() => {
     setDuration(0)
@@ -317,7 +323,7 @@ const CastPage: React.FC = () => {
           onTimeUpdate={handleUpdateTime}
           ref={audioRef} />
         <IndicatorSection>
-          <Clock>
+          <Clock isActive={isActive}>
             <ClockDate>{now.toLocaleDateString()}</ClockDate>
             <ClockTime>{now.toLocaleTimeString()}</ClockTime>
           </Clock>
@@ -558,12 +564,19 @@ const DashboardSection = styled.div`
     padding: 20px;
   }
 `
-const Clock = styled.div`
+const Clock = styled.div<{ isActive: boolean | null }>`
   padding: 20px;
   text-align: center;
-  background-color: var(--panel-background-color);
+  background-color: ${props =>
+    props.isActive === null
+      ? 'var(--panel-background-color)'
+      : props.isActive
+        ? 'var(--panel-active-background-color)'
+        : 'var(--panel-inactive-background-color)'};
+   ${props => props.isActive && 'box-shadow: 0 0 10px var(--indicator-active-color)'};
   font-feature-settings: 'tnum';
   font-variant-numeric: tabular-nums;
+  transition: background-color 0.5s, box-shadow 0.5s;
 `
 const ClockDate = styled.div`
   font-size: 1.2em;
@@ -591,7 +604,7 @@ const IndicatorStatusIcon = styled.div<{ isActive: boolean }>`
     position: absolute;
     top: 15%;
     left: 15%;
-    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    transition: background-color 0.5s, box-shadow 0.5s;
     background-color: ${props => props.isActive ? 'var(--indicator-active-color)' : 'var(--indicator-inactive-color)'};
     border-radius: 50%;
     box-shadow: 0 0 10px ${props => props.isActive ? 'var(--indicator-active-color)' : 'var(--indicator-inactive-color)'};
@@ -695,7 +708,7 @@ const SourceRowNowPlaying = styled.span<{ isActive?: boolean }>`
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  transition: background-color 0.5s, box-shadow 0.5s;
   background-color: ${props => props.isActive ? 'var(--indicator-active-color)' : 'var(--indicator-inactive-color)'};
   box-shadow: 0 0 10px ${props => props.isActive ? 'var(--indicator-active-color)' : 'var(--indicator-inactive-color)'};
 `

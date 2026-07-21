@@ -1,4 +1,4 @@
-import { Schedule, Source } from 'chronocast'
+import { Folder, Schedule, Source } from 'chronocast'
 import { Hono } from 'hono'
 import { APIEnv, APIContext } from '../@types'
 import { errorCodes } from '../constants/errorCodes'
@@ -13,6 +13,26 @@ const getFolderSchedulerStub = (c: APIContext, folderKey: string) => {
 }
 
 const router = new Hono<APIEnv>()
+
+router.get('/folders/:folderKey', requiredLogin, async c => {
+  const folderKey = c.req.param('folderKey')
+  const prisma = c.get('prisma')
+
+  const folder = await prisma.folder.findUnique({
+    where: {
+      slug: folderKey
+    }
+  })
+  if (!folder) {
+    throw APIError.notFound()
+  }
+
+  const result: Folder = {
+    key: folder.slug
+  }
+
+  return c.json(result)
+})
 
 router.get('/folders/:folderKey/sources', requiredLogin, async c => {
   const folderKey = c.req.param('folderKey')

@@ -1,11 +1,12 @@
 import { useCallback } from 'react'
 import useFetch from './useFetch'
 import useToken from './useToken'
-import type { Schedule, Source, Socket } from 'chronocast'
+import type { Schedule, Source, Socket, Folder } from 'chronocast'
 
 export type ConnectionStatusType = 'connecting' | 'open' | 'closed'
 
 interface IUseCast {
+  getFolderByKeyAsync: (folderKey: string, abort: AbortController) => Promise<Folder>
   getSourcesByFolderKeyAsync: (folderKey: string, abort: AbortController) => Promise<Source[]>
   addSourceAsync: (folderKey: string, sourceName: string, abort: AbortController) => Promise<number>
   uploadSourceAsync: (folderKey: string, sourceId: number, file: File, abort: AbortController) => Promise<void>
@@ -20,6 +21,11 @@ interface IUseCast {
 const useCast = (): IUseCast => {
   const { getAsync, postAsync, deleteAsync } = useFetch()
   const { apiToken } = useToken()
+
+  const getFolderByKeyAsync = useCallback(async (folderKey: string, abort: AbortController) => {
+    const result = await getAsync<Folder>(`/folders/${folderKey}`, { requiredAuthorize: true, abort })
+    return result
+  }, [getAsync])
 
   const getSourcesByFolderKeyAsync = useCallback(async (folderKey: string, abort: AbortController) => {
     const results = await getAsync<Source[]>(`/folders/${folderKey}/sources`, { requiredAuthorize: true, abort })
@@ -125,6 +131,7 @@ const useCast = (): IUseCast => {
   }, [apiToken])
 
   return {
+    getFolderByKeyAsync,
     getSourcesByFolderKeyAsync,
     addSourceAsync,
     uploadSourceAsync,
