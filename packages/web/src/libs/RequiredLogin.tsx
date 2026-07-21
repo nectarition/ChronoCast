@@ -21,7 +21,7 @@ const RequiredLogin: React.FC<Props> = props => {
   useEffect(() => {
     if (user === undefined) return
     if (props.allowAnonymous && user === null) return
-    if (props.allowInactive && !user?.isActive) return
+    if (props.allowInactive && user && !user.isActive) return
     if (user && (location.pathname === '/login' || location.pathname === '/oidc/callback')) {
       if (location.state?.from) {
         const fromLocation = location.state.from as { pathname: string; search: string }
@@ -35,7 +35,7 @@ const RequiredLogin: React.FC<Props> = props => {
       }
       return
     }
-    if (!user?.isActive && !props.allowInactive) {
+    if (user && !user.isActive && !props.allowInactive) {
       navigate('/login', {
         state: { from: (location.pathname !== '/' && location) || undefined },
         replace: true
@@ -51,7 +51,7 @@ const RequiredLogin: React.FC<Props> = props => {
 
   return (
     <>
-      {(user?.isActive || props.allowAnonymous || props.allowInactive) && props.children}
+      {user !== undefined && (user?.isActive || props.allowAnonymous || (user && props.allowInactive)) && props.children}
     </>
   )
 }
