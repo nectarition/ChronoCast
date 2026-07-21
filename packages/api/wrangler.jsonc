@@ -28,7 +28,14 @@
 				"S3_BUCKET_NAME": "chronocast",
 				"ALLOWED_ORIGINS": "https://cast.nectarition.jp",
 				"OIDC_CALLBACK_URI": "https://cast.nectarition.jp/oidc/callback"
-			}
+			},
+			"d1_databases": [
+				{
+					"binding": "DB",
+					"database_name": "d1-nct-chronocast",
+					"database_id": "b3467c4d-be4b-4d31-a6cd-e073ba7d0fbf"
+				}
+			],
 		}
 	},
 	"observability": {
