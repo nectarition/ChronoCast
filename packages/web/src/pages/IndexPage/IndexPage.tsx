@@ -19,9 +19,11 @@ const IndexPage: React.FC = () => {
   const { getFolderByKeyAsync } = useCast()
 
   const [folderKey, setFolderKey] = useState('')
+  const [isProgress, setIsProgress] = useState(false)
 
   const handleFetch = useCallback(async () => {
     if (folderKey.trim() === '') return
+    setIsProgress(true)
     getFolderByKeyAsync(folderKey, new AbortController())
       .then(() => {
         navigate(`/folders/${folderKey}`)
@@ -29,6 +31,7 @@ const IndexPage: React.FC = () => {
       .catch(err => {
         if (err.name !== 'APIError') return
         toast.error(err.message)
+        setIsProgress(false)
       })
   }, [getFolderByKeyAsync, navigate, folderKey])
 
@@ -61,7 +64,7 @@ const IndexPage: React.FC = () => {
           <FormSection>
             <FormItem>
               <LinkButton
-                disabled={folderKey.trim() === ''}
+                disabled={folderKey.trim() === '' || isProgress}
                 to={`/folders/${folderKey}`}>
                 <IconLabel
                   icon={<ArrowRightIcon />}
