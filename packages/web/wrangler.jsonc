@@ -2,10 +2,6 @@
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "nct-chronocast-web",
   "pages_build_output_dir": "./dist",
-  "vars": {
-    "NODE_VERSION": "24",
-    
-  },
   "env": {
     "production": {
       "vars": {
