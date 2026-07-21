@@ -20,8 +20,8 @@ const FormCheckbox: React.FC<Props> = props => {
         onChange={e => props.onChange(e.target.checked)}
         type="checkbox" />
       <CheckboxLabel
-        $inlined={props.inlined}
-        htmlFor={props.name}>
+        htmlFor={props.name}
+        inlined={props.inlined}>
         {props.label}
       </CheckboxLabel>
     </>
