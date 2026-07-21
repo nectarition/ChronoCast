@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, SignOut } from '@phosphor-icons/react'
+import { ArrowRightIcon, SignOutIcon } from '@phosphor-icons/react'
+import toast from 'react-hot-toast'
 import FormButton from '../../components/Form/FormButton'
 import FormInput from '../../components/Form/FormInput'
 import FormItem from '../../components/Form/FormItem'
@@ -9,24 +10,38 @@ import FormSection from '../../components/Form/FormSection'
 import IconLabel from '../../components/Parts/IconLabel'
 import LinkButton from '../../components/Parts/LinkButton'
 import useAccount from '../../hooks/useAccount'
+import useCast from '../../hooks/useCast'
 import DefaultLayout from '../../layouts/DefaultLayout/DefaultLayout'
 
 const IndexPage: React.FC = () => {
   const navigate = useNavigate()
   const { user, logoutAsync } = useAccount()
+  const { getFolderByKeyAsync } = useCast()
 
   const [folderKey, setFolderKey] = useState('')
 
+  const handleFetch = useCallback(async () => {
+    if (folderKey.trim() === '') return
+    getFolderByKeyAsync(folderKey, new AbortController())
+      .then(() => {
+        navigate(`/folders/${folderKey}`)
+      })
+      .catch(err => {
+        if (err.name !== 'APIError') return
+        toast.error(err.message)
+      })
+  }, [getFolderByKeyAsync, navigate, folderKey])
+
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && folderKey.trim() !== '') {
-      navigate(`/folders/${folderKey}`)
+      handleFetch()
     }
-  }, [folderKey, navigate])
+  }, [folderKey, handleFetch])
 
   const handleLogout = useCallback(() => {
     logoutAsync()
       .then(() => navigate('/login', { replace: true }))
-  }, [logoutAsync])
+  }, [navigate, logoutAsync])
 
   return (
     <DefaultLayout allowInactive>
@@ -49,7 +64,7 @@ const IndexPage: React.FC = () => {
                 disabled={folderKey.trim() === ''}
                 to={`/folders/${folderKey}`}>
                 <IconLabel
-                  icon={<ArrowRight />}
+                  icon={<ArrowRightIcon />}
                   label="フォルダに移動" />
               </LinkButton>
             </FormItem>
@@ -68,7 +83,7 @@ const IndexPage: React.FC = () => {
         <FormItem>
           <FormButton onClick={handleLogout}>
             <IconLabel
-              icon={<SignOut />}
+              icon={<SignOutIcon />}
               label="ログアウト" />
           </FormButton>
         </FormItem>
