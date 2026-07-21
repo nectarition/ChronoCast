@@ -16,7 +16,18 @@
 	"vars": {
 		"CLOUDFLARE_ACCOUNT_ID": "1dff13d46b875e68df586a01437fa324",
 		"S3_ACCESS_KEY_ID": "bc5fec5b3fcc2e3dbacd8f16dce95ace",
-		"S3_BUCKET_NAME": "chronocast"
+		"S3_BUCKET_NAME": "chronocast",
+		"ALLOWED_ORIGINS": "http://localhost:5173"
+	},
+	"env": {
+		"prod": {
+			"vars": {
+				"CLOUDFLARE_ACCOUNT_ID": "1dff13d46b875e68df586a01437fa324",
+				"S3_ACCESS_KEY_ID": "bc5fec5b3fcc2e3dbacd8f16dce95ace",
+				"S3_BUCKET_NAME": "chronocast",
+				"ALLOWED_ORIGINS": "https://cast.nectarition.jp"
+			}
+		}
 	},
 	"observability": {
 		"enabled": false,
