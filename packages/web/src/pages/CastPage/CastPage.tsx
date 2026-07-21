@@ -311,6 +311,14 @@ const CastPage: React.FC = () => {
         toast.error(err.message)
         throw err
       })
+    return () => {
+      abort.abort()
+      schedules?.forEach(schedule => {
+        if (schedule.timerId) {
+          clearTimeout(schedule.timerId)
+        }
+      })
+    }
   }, [folderKey, initialSources, getSchedulesByFolderKeyAsync, addQueue])
 
   useEffect(() => {
