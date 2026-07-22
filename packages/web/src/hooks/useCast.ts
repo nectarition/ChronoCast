@@ -12,6 +12,7 @@ interface IUseCast {
   uploadSourceAsync: (folderKey: string, sourceId: number, file: File, abort: AbortController) => Promise<void>
   updateSourceNameAsync: (folderKey: string, sourceId: number, newName: string, abort: AbortController) => Promise<void>
   broadcastPlaySourceAsync: (folderKey: string, sourceId: number, abort: AbortController) => Promise<void>
+  broadcastStopSourceAsync: (folderKey: string, abort: AbortController) => Promise<void>
   deleteSourceAsync: (folderKey: string, sourceId: number, abort: AbortController) => Promise<void>
   getSourceURLAsync: (folderKey: string, sourceId: number, abort: AbortController) => Promise<string>
   getSchedulesByFolderKeyAsync: (folderKey: string, abort: AbortController) => Promise<Schedule[]>
@@ -57,6 +58,10 @@ const useCast = (): IUseCast => {
   const broadcastPlaySourceAsync = useCallback(async (folderKey: string, sourceId: number, abort: AbortController) => {
     return await postAsync<void>(`/folders/${folderKey}/sources/${sourceId}/broadcast`, {}, { requiredAuthorize: true, abort })
   }, [postAsync])
+
+  const broadcastStopSourceAsync = useCallback(async (folderKey: string, abort: AbortController) => {
+    return await deleteAsync<void>(`/folders/${folderKey}/sources/broadcast`, {}, { requiredAuthorize: true, abort })
+  }, [deleteAsync])
 
   const deleteSourceAsync = useCallback(async (folderKey: string, sourceId: number, abort: AbortController) => {
     return await deleteAsync<void>(`/folders/${folderKey}/sources/${sourceId}`, {}, { requiredAuthorize: true, abort })
@@ -147,6 +152,7 @@ const useCast = (): IUseCast => {
     uploadSourceAsync,
     updateSourceNameAsync,
     broadcastPlaySourceAsync,
+    broadcastStopSourceAsync,
     deleteSourceAsync,
     getSourceURLAsync,
     getSchedulesByFolderKeyAsync,

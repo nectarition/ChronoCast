@@ -83,6 +83,20 @@ export class FolderDurableObject extends DurableObject<Env> {
     }
   }
 
+  async broadcastStopSource(): Promise<void> {
+    const payload: Socket.SourceStopEvent = {
+      type: 'SOURCE_STOP'
+    }
+    for (const ws of this.ctx.getWebSockets()) {
+      try {
+        ws.send(JSON.stringify(payload))
+      }
+      catch (err) {
+        console.error('Failed to send stop source notification:', err)
+      }
+    }
+  }
+
   async broadcastRemoveSource(sourceId: number): Promise<void> {
     const payload: Socket.SourceRemoveEvent = {
       type: 'SOURCE_REMOVE',

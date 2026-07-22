@@ -40,6 +40,7 @@ const CastPage: React.FC = () => {
     addSourceAsync,
     deleteScheduleAsync,
     broadcastPlaySourceAsync,
+    broadcastStopSourceAsync,
     deleteSourceAsync,
     getSourceURLAsync,
     uploadSourceAsync,
@@ -99,13 +100,18 @@ const CastPage: React.FC = () => {
     resetDuration()
   }, [])
 
-  const stopAudio = useCallback(() => {
-    if (!audioRef.current) return
-    audioRef.current.pause()
-    audioRef.current.src = ''
-    handleEndAudio()
-    resetDuration()
-  }, [])
+  const handleStopAudio = useCallback(() => {
+    if (!folderKey) return
+    const abort = new AbortController()
+    broadcastStopSourceAsync(folderKey, abort)
+      .then(() => {
+        toast.success('放送停止依頼を送信しました')
+      })
+      .catch(err => {
+        toast.error('放送停止依頼に失敗しました')
+        throw err
+      })
+  }, [folderKey, broadcastStopSourceAsync])
 
   const playWithSource = useCallback((sourceId: number) => {
     if (!sources || !audioRef.current || audioRef.current.muted) return
@@ -344,11 +350,16 @@ const CastPage: React.FC = () => {
           case 'SCHEDULE_NEXT':
             setNextScheduleId(event.scheduleId)
             return
-          case 'SOURCE_PLAY':
-          case 'SCHEDULE_PLAY': {
+          case 'SOURCE_PLAY': {
             playWithSource(event.sourceId)
             return
           }
+          case 'SOURCE_STOP':
+            if (!audioRef.current) return
+            audioRef.current.pause()
+            audioRef.current.src = ''
+            handleEndAudio()
+            return
           case 'SCHEDULE_ADD': {
             setSchedules(s => s && ([...s, {
               id: event.scheduleId,
@@ -459,7 +470,9 @@ const CastPage: React.FC = () => {
                 icon={isMuted ? <SpeakerSimpleHighIcon weight="regular" /> : <SpeakerSimpleSlashIcon weight="regular" />}
                 label={`ミュート${isMuted ? 'を解除する' : 'する'}`} />
             </ControlButton>
-            <ControlButton onClick={stopAudio}>
+            <ControlButton
+              color="danger"
+              onClick={handleStopAudio}>
               <IconLabel
                 icon={<StopIcon />}
                 label="再生中の音源を停止する" />
