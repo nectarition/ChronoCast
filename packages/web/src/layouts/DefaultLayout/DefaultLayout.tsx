@@ -24,5 +24,6 @@ const Container = styled.div`
   padding: 20px 10%;
   @media screen and (max-width: 768px) {
     padding: 20px;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
   }
 `

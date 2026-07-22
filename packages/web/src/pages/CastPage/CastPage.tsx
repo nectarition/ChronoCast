@@ -757,6 +757,7 @@ const DashboardSection = styled.div`
   padding-left: 0;
   @media screen and (max-width: 840px) {
     padding: 20px;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
   }
 `
 const Clock = styled.div<{ isActive: boolean | null }>`
