@@ -754,6 +754,7 @@ const DashboardSection = styled.div`
   height: 100%;
   overflow: auto;
   padding: 40px;
+  padding-left: 0;
   @media screen and (max-width: 840px) {
     padding: 20px;
   }
