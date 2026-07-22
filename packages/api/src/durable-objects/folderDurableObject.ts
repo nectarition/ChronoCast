@@ -178,8 +178,25 @@ export class FolderDurableObject extends DurableObject<Env> {
     }
   }
 
+  private broadcastTimeAdjustment(now: Date): void {
+    const payload: Socket.TimeAdjustmentEvent = {
+      type: 'TIME_ADJUSTMENT',
+      now: now.getTime()
+    }
+    for (const ws of this.ctx.getWebSockets()) {
+      try {
+        ws.send(JSON.stringify(payload))
+      }
+      catch (err) {
+        console.error('Failed to send time adjustment notification:', err)
+      }
+    }
+  }
+
   async alarm(): Promise<void> {
     const now = new Date()
+    this.broadcastTimeAdjustment(now)
+
     const dueSchedules = this.ctx.storage.sql
       .exec<ScheduleRow>('SELECT id, sourceId, scheduledAt FROM schedules WHERE scheduledAt <= ? ORDER BY scheduledAt DESC', now.getTime())
       .toArray()
@@ -223,6 +240,12 @@ export class FolderDurableObject extends DurableObject<Env> {
       scheduleId: this.getNextScheduleId(now)
     }
     pair[1].send(JSON.stringify(scheduleNextPayload))
+
+    const timeAdjustmentPayload: Socket.TimeAdjustmentEvent = {
+      type: 'TIME_ADJUSTMENT',
+      now: now.getTime()
+    }
+    pair[1].send(JSON.stringify(timeAdjustmentPayload))
 
     this.broadcastConnectionCount()
 
