@@ -59,10 +59,14 @@ const CastPage: React.FC = () => {
 
   const [file, setFile] = useState<File>()
   const [sourceName, setSourceName] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [editableSchedule, setEditableSchedule] = useState({
     sourceId: 0,
     scheduledAt: ''
   })
+
+  const [isProgressForSource, setIsProgressForSource] = useState(false)
+  const [isProgressForSchedule, setIsProgressForSchedule] = useState(false)
 
   const isActive = useMemo(() => {
     if (connectionStatus !== 'open' || isMuted) return null
@@ -129,6 +133,7 @@ const CastPage: React.FC = () => {
       scheduledAt: new Date(editableSchedule.scheduledAt)
     }
     const abort = new AbortController()
+    setIsProgressForSchedule(true)
     addScheduleAsync(folderKey, schedule, abort)
       .then(() => {
         setEditableSchedule({
@@ -139,6 +144,9 @@ const CastPage: React.FC = () => {
       .catch(err => {
         toast.error('追加に失敗しました')
         throw err
+      })
+      .finally(() => {
+        setIsProgressForSchedule(false)
       })
   }, [folderKey, editableSchedule, sources, addScheduleAsync])
 
@@ -155,19 +163,25 @@ const CastPage: React.FC = () => {
 
   const handleAddSource = useCallback(() => {
     if (!folderKey || !file || !sourceName) return
-
     const abort = new AbortController()
+    setIsProgressForSource(true)
     addSourceAsync(folderKey, sourceName, abort)
       .then(id => {
         uploadSourceAsync(folderKey, id, file, abort)
           .then(async () => {
             setSourceName('')
             setFile(undefined)
+            if (fileInputRef.current) {
+              fileInputRef.current.value = ''
+            }
           })
       })
       .catch(err => {
         toast.error('音源の追加に失敗しました')
         throw err
+      })
+      .finally(() => {
+        setIsProgressForSource(false)
       })
   }, [folderKey, file, sourceName, addSourceAsync, uploadSourceAsync])
 
@@ -314,6 +328,12 @@ const CastPage: React.FC = () => {
   }, [folderKey, sources, connectSocket, getSourceURLAsync])
 
   useEffect(() => {
+    if (!file) return
+    const fileNameWithoutExtension = file.name.replace(/\.[^/.]+$/, '')
+    setSourceName(fileNameWithoutExtension)
+  }, [file])
+
+  useEffect(() => {
     const timerId = setInterval(() => {
       setClientNow(Date.now())
     }, 500)
@@ -437,7 +457,9 @@ const CastPage: React.FC = () => {
             </FormSection>
             <FormSection>
               <FormItem>
-                <FormButton onClick={handleAddSchedule}>
+                <FormButton
+                  disabled={!editableSchedule.scheduledAt || !editableSchedule.sourceId || isProgressForSchedule}
+                  onClick={handleAddSchedule}>
                   スケジュール追加
                 </FormButton>
               </FormItem>
@@ -496,6 +518,7 @@ const CastPage: React.FC = () => {
                 <FormInput
                   accept="audio/mp3"
                   onChange={e => setFile(e.target.files?.[0])}
+                  ref={fileInputRef}
                   type="file" />
               </FormItem>
               <FormItem>
@@ -509,7 +532,9 @@ const CastPage: React.FC = () => {
             </FormSection>
             <FormSection>
               <FormItem>
-                <FormButton onClick={handleAddSource}>
+                <FormButton
+                  disabled={!file || !sourceName || isProgressForSource}
+                  onClick={handleAddSource}>
                   音源追加
                 </FormButton>
               </FormItem>
