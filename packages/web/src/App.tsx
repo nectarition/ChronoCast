@@ -28,7 +28,9 @@ const router = createBrowserRouter([
 const App: React.FC = () => {
   return (
     <AuthenticationProvider>
-      <Toaster toastOptions={{ duration: 5000 }} />
+      <Toaster
+        position="bottom-right"
+        toastOptions={{ duration: 5000 }} />
       <RouterProvider router={router} />
     </AuthenticationProvider>
   )
