@@ -186,6 +186,43 @@ router.post('/folders/:folderKey/sources/:sourceId/file', requiredLogin, async c
   return c.json({ success: true })
 })
 
+router.post('/folders/:folderKey/sources/:sourceId/broadcast', requiredLogin, async c => {
+  const folderKey = c.req.param('folderKey')
+  if (!folderKey) {
+    throw APIError.invalidArgument('folderKey is required')
+  }
+
+  const sourceId = Number(c.req.param('sourceId'))
+  if (isNaN(sourceId)) {
+    throw APIError.invalidArgument('sourceId is invalid')
+  }
+
+  const prisma = c.get('prisma')
+
+  const folder = await prisma.folder.findUnique({
+    where: {
+      slug: folderKey
+    }
+  })
+  if (!folder) {
+    throw APIError.notFound()
+  }
+
+  const source = await prisma.source.findUnique({
+    where: {
+      id: sourceId
+    }
+  })
+  if (!source || source.folderId !== folder.id) {
+    throw APIError.notFound()
+  }
+
+  const folderDO = getFolderSchedulerStub(c, folderKey)
+  await folderDO.broadcastPlaySource(sourceId)
+
+  return c.json({ success: true })
+})
+
 router.delete('/folders/:folderKey/sources/:sourceId', requiredLogin, async c => {
   const folderKey = c.req.param('folderKey')
   if (!folderKey) {

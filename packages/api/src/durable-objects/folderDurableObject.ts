@@ -68,6 +68,21 @@ export class FolderDurableObject extends DurableObject<Env> {
     }
   }
 
+  async broadcastPlaySource(sourceId: number): Promise<void> {
+    const payload: Socket.SourcePlayEvent = {
+      type: 'SOURCE_PLAY',
+      sourceId
+    }
+    for (const ws of this.ctx.getWebSockets()) {
+      try {
+        ws.send(JSON.stringify(payload))
+      }
+      catch (err) {
+        console.error('Failed to send play source notification:', err)
+      }
+    }
+  }
+
   async broadcastRemoveSource(sourceId: number): Promise<void> {
     const payload: Socket.SourceRemoveEvent = {
       type: 'SOURCE_REMOVE',
@@ -225,19 +240,7 @@ export class FolderDurableObject extends DurableObject<Env> {
 
     this.ctx.storage.sql.exec('DELETE FROM schedules WHERE scheduledAt <= ?', now.getTime())
 
-    const payload: Socket.SchedulePlayEvent = {
-      type: 'SCHEDULE_PLAY',
-      scheduleId: schedule.id,
-      sourceId: schedule.sourceId
-    }
-    for (const ws of this.ctx.getWebSockets()) {
-      try {
-        ws.send(JSON.stringify(payload))
-      }
-      catch (err) {
-        console.error('Failed to send schedule notification:', err)
-      }
-    }
+    this.broadcastPlaySource(schedule.sourceId)
 
     await this.scheduleNextAlarm(now)
   }

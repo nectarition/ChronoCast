@@ -1,6 +1,6 @@
 import { css, type SerializedStyles } from '@emotion/react'
 
-type ColorType =  'danger' | 'default'
+type ColorType = 'danger' | 'default'
 type Props = {
   size?: 'small' | 'large'
   color?: ColorType
@@ -27,7 +27,7 @@ const buttonStyle = (props: Props): SerializedStyles => css`
   text-decoration: none;
   
   border: 1px solid var(--border-color);
-  background-color: var(--inputfield-background-color);
+  background-color: ${props.color === 'danger' ? 'var(--inputfield-danger-background-color)' : 'var(--inputfield-background-color)'};
   color: inherit;
   border-radius: 5px;
 
