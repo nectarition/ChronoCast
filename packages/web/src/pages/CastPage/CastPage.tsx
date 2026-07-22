@@ -4,11 +4,14 @@ import styled from '@emotion/styled'
 import {
   ArrowClockwiseIcon,
   ArrowLeftIcon,
+  FloppyDiskIcon,
+  PencilSimpleIcon,
   PlayIcon,
   SpeakerSimpleHighIcon,
   SpeakerSimpleSlashIcon,
   StopIcon,
-  TrashIcon
+  TrashIcon,
+  XIcon
 } from '@phosphor-icons/react'
 import toast from 'react-hot-toast'
 import FormButton from '../../components/Form/FormButton'
@@ -38,6 +41,7 @@ const CastPage: React.FC = () => {
     deleteSourceAsync,
     getSourceURLAsync,
     uploadSourceAsync,
+    updateSourceNameAsync,
     connectSocket
   } = useCast()
 
@@ -65,6 +69,8 @@ const CastPage: React.FC = () => {
     scheduledAt: ''
   })
 
+  const [editingSourceId, setEditingSourceId] = useState<number | null>(null)
+  const [editingSourceName, setEditingSourceName] = useState('')
   const [isProgressForSource, setIsProgressForSource] = useState(false)
   const [isProgressForSchedule, setIsProgressForSchedule] = useState(false)
 
@@ -236,6 +242,20 @@ const CastPage: React.FC = () => {
       })
   }, [folderKey, getSourcesByFolderKeyAsync, getSourceURLAsync])
 
+  const handleSaveSourceName = useCallback(() => {
+    if (!folderKey || editingSourceId === null || !editingSourceName) return
+    const abort = new AbortController()
+    updateSourceNameAsync(folderKey, editingSourceId, editingSourceName, abort)
+      .then(() => {
+        setEditingSourceId(null)
+        setEditingSourceName('')
+      })
+      .catch(err => {
+        toast.error('音源名の変更に失敗しました')
+        throw err
+      })
+  }, [folderKey, editingSourceId, editingSourceName, updateSourceNameAsync])
+
   useEffect(() => {
     const abort = new AbortController()
     handleRefresh(abort)
@@ -288,6 +308,16 @@ const CastPage: React.FC = () => {
               })
             return
           }
+          case 'SOURCE_UPDATE': {
+            setSources(s => s && s.map(source => {
+              if (source.id !== event.sourceId) return source
+              return {
+                ...source,
+                name: event.name
+              }
+            }))
+            return
+          }
           case 'SOURCE_REMOVE':
             setSources(s => s && s.filter(source => source.id !== event.sourceId))
             toast.success('音源が削除されました')
@@ -332,6 +362,16 @@ const CastPage: React.FC = () => {
     const fileNameWithoutExtension = file.name.replace(/\.[^/.]+$/, '')
     setSourceName(fileNameWithoutExtension)
   }, [file])
+
+  useEffect(() => {
+    if (editingSourceId === null) {
+      setEditingSourceName('')
+      return
+    }
+    const source = sources?.find(s => s.id === editingSourceId)
+    if (!source) return
+    setEditingSourceName(source.name)
+  }, [editingSourceId])
 
   useEffect(() => {
     const timerId = setInterval(() => {
@@ -558,16 +598,46 @@ const CastPage: React.FC = () => {
                       <SourceRowNowPlaying isActive={playingSource?.id === source.id} />
                     </SourceRowIndicator>
                     <SourceRowTitle>
-                      {source.name}
+                      {editingSourceId !== source.id && (
+                        <>{source.name}</>
+                      )}
+                      {editingSourceId === source.id && (
+                        <FormInput
+                          onChange={e => setEditingSourceName(e.target.value)}
+                          placeholder="音源名"
+                          type="text"
+                          value={editingSourceName} />
+                      )}
                     </SourceRowTitle>
-                    <ActionButton
-                      disabled={isMuted}
-                      onClick={() => handleManualPlay(source.id)}>
-                      <PlayIcon weight="fill" />
-                    </ActionButton>
-                    <ActionButton onClick={() => handleDeleteSource(source.id)}>
-                      <TrashIcon weight="fill" />
-                    </ActionButton>
+                    <SourceRowActions>
+                      {editingSourceId !== source.id && (
+                        <>
+                          <ActionButton
+                            disabled={isMuted}
+                            onClick={() => handleManualPlay(source.id)}>
+                            <PlayIcon weight="fill" />
+                          </ActionButton>
+                          <ActionButton onClick={() => setEditingSourceId(source.id)}>
+                            <PencilSimpleIcon weight="fill" />
+                          </ActionButton>
+                          <ActionButton onClick={() => handleDeleteSource(source.id)}>
+                            <TrashIcon weight="fill" />
+                          </ActionButton>
+                        </>
+                      )}
+                      {editingSourceId === source.id && (
+                        <>
+                          <ActionButton
+                            disabled={!editingSourceName}
+                            onClick={handleSaveSourceName}>
+                            <FloppyDiskIcon />
+                          </ActionButton>
+                          <ActionButton onClick={() => setEditingSourceId(null)}>
+                            <XIcon />
+                          </ActionButton>
+                        </>
+                      )}
+                    </SourceRowActions>
                   </SourceRow>
                 ))}
             </SourceTable>
@@ -736,7 +806,7 @@ const SourceTable = styled.div`
 `
 const SourceRow = styled.div`
   display: grid;
-  grid-template-columns: 48px 1fr 64px 64px;
+  grid-template-columns: 48px 1fr 138px;
   gap: 5px;
   background-color: var(--card-background-color);
   padding: 10px;
@@ -760,4 +830,8 @@ const SourceRowTitle = styled.div`
   display: flex;
   align-items: center;
   font-size: 1.2em;
+`
+const SourceRowActions = styled.div`
+  display: flex;
+  gap: 5px;
 `

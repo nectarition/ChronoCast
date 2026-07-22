@@ -10,6 +10,7 @@ interface IUseCast {
   getSourcesByFolderKeyAsync: (folderKey: string, abort: AbortController) => Promise<Source[]>
   addSourceAsync: (folderKey: string, sourceName: string, abort: AbortController) => Promise<number>
   uploadSourceAsync: (folderKey: string, sourceId: number, file: File, abort: AbortController) => Promise<void>
+  updateSourceNameAsync: (folderKey: string, sourceId: number, newName: string, abort: AbortController) => Promise<void>
   deleteSourceAsync: (folderKey: string, sourceId: number, abort: AbortController) => Promise<void>
   getSourceURLAsync: (folderKey: string, sourceId: number, abort: AbortController) => Promise<string>
   getSchedulesByFolderKeyAsync: (folderKey: string, abort: AbortController) => Promise<Schedule[]>
@@ -19,7 +20,7 @@ interface IUseCast {
 }
 
 const useCast = (): IUseCast => {
-  const { getAsync, postAsync, deleteAsync } = useFetch()
+  const { getAsync, postAsync, patchAsync, deleteAsync } = useFetch()
   const { apiToken } = useToken()
 
   const getFolderByKeyAsync = useCallback(async (folderKey: string, abort: AbortController) => {
@@ -42,6 +43,10 @@ const useCast = (): IUseCast => {
     formData.append('file', file)
     return await postAsync<void>(`/folders/${folderKey}/sources/${sourceId}/file`, formData, { requiredAuthorize: true, abort })
   }, [postAsync])
+
+  const updateSourceNameAsync = useCallback(async (folderKey: string, sourceId: number, newName: string, abort: AbortController) => {
+    return await patchAsync<void>(`/folders/${folderKey}/sources/${sourceId}`, { name: newName }, { requiredAuthorize: true, abort })
+  }, [patchAsync])
 
   const getSourceURLAsync = useCallback(async (folderKey: string, sourceId: number, abort: AbortController) => {
     const result = await getAsync<{ url: string }>(`/folders/${folderKey}/sources/${sourceId}/url`, { requiredAuthorize: true, abort })
@@ -135,6 +140,7 @@ const useCast = (): IUseCast => {
     getSourcesByFolderKeyAsync,
     addSourceAsync,
     uploadSourceAsync,
+    updateSourceNameAsync,
     deleteSourceAsync,
     getSourceURLAsync,
     getSchedulesByFolderKeyAsync,

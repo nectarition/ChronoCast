@@ -66,6 +66,11 @@ namespace Socket {
     folderKey: string
     name: string
   }
+  export type SourceUpdateEvent = {
+    type: 'SOURCE_UPDATE'
+    sourceId: number
+    name: string
+  }
   export type SourceRemoveEvent = {
     type: 'SOURCE_REMOVE'
     sourceId: number
@@ -82,6 +87,7 @@ namespace Socket {
     | ScheduleAddEvent
     | ScheduleRemoveEvent
     | SourceAddEvent
+    | SourceUpdateEvent
     | SourceRemoveEvent
     | TimeAdjustmentEvent
 }
