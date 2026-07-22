@@ -256,6 +256,12 @@ const CastPage: React.FC = () => {
       })
   }, [folderKey, editingSourceId, editingSourceName, updateSourceNameAsync])
 
+  const handleKeyDownSourceName = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      handleSaveSourceName()
+    }
+  }, [handleSaveSourceName])
+
   useEffect(() => {
     const abort = new AbortController()
     handleRefresh(abort)
@@ -604,6 +610,7 @@ const CastPage: React.FC = () => {
                       {editingSourceId === source.id && (
                         <FormInput
                           onChange={e => setEditingSourceName(e.target.value)}
+                          onKeyDown={handleKeyDownSourceName}
                           placeholder="音源名"
                           type="text"
                           value={editingSourceName} />
