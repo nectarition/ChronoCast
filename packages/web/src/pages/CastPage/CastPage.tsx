@@ -71,7 +71,9 @@ const CastPage: React.FC = () => {
     scheduledAt: ''
   })
 
-  const [editingSourceId, setEditingSourceId] = useState<number | null>(null)
+  const [selectingScheduleId, setSelectingScheduleId] = useState<number | null>(null)
+  const [selectingSourceId, setSelectingSourceId] = useState<number | null>(null)
+  const [selectType, setSelectType] = useState<'edit' | 'broadcast' | 'delete' | null>(null)
   const [editingSourceName, setEditingSourceName] = useState('')
   const [isProgressForSource, setIsProgressForSource] = useState(false)
   const [isProgressForSchedule, setIsProgressForSchedule] = useState(false)
@@ -145,12 +147,6 @@ const CastPage: React.FC = () => {
     const abort = new AbortController()
     setIsProgressForSchedule(true)
     addScheduleAsync(folderKey, schedule, abort)
-      .then(() => {
-        setEditableSchedule({
-          sourceId: 0,
-          scheduledAt: ''
-        })
-      })
       .catch(err => {
         toast.error('追加に失敗しました')
         throw err
@@ -162,7 +158,6 @@ const CastPage: React.FC = () => {
 
   const handleDeleteSchedule = useCallback((scheduleId: number) => {
     if (!folderKey) return
-    if (!confirm('削除しますか？')) return
     const abort = new AbortController()
     deleteScheduleAsync(folderKey, scheduleId, abort)
       .catch(err => {
@@ -197,7 +192,6 @@ const CastPage: React.FC = () => {
 
   const handleDeleteSource = useCallback((sourceId: number) => {
     if (!folderKey) return
-    if (!confirm('音源を削除しますか？')) return
     const abort = new AbortController()
     deleteSourceAsync(folderKey, sourceId, abort)
       .catch(err => {
@@ -220,6 +214,10 @@ const CastPage: React.FC = () => {
       .catch(err => {
         toast.error('放送依頼に失敗しました')
         throw err
+      })
+      .finally(() => {
+        setSelectType(null)
+        setSelectingSourceId(null)
       })
   }, [folderKey, broadcastPlaySourceAsync])
 
@@ -257,18 +255,18 @@ const CastPage: React.FC = () => {
   }, [folderKey, getSourcesByFolderKeyAsync, getSourceURLAsync])
 
   const handleSaveSourceName = useCallback(() => {
-    if (!folderKey || editingSourceId === null || !editingSourceName) return
+    if (!folderKey || !editingSourceName || selectType !== 'edit' || selectingSourceId === null) return
     const abort = new AbortController()
-    updateSourceNameAsync(folderKey, editingSourceId, editingSourceName, abort)
+    updateSourceNameAsync(folderKey, selectingSourceId, editingSourceName, abort)
       .then(() => {
-        setEditingSourceId(null)
+        setSelectingSourceId(null)
         setEditingSourceName('')
       })
       .catch(err => {
         toast.error('音源名の変更に失敗しました')
         throw err
       })
-  }, [folderKey, editingSourceId, editingSourceName, updateSourceNameAsync])
+  }, [folderKey, editingSourceName, updateSourceNameAsync])
 
   const handleKeyDownSourceName = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
@@ -381,14 +379,15 @@ const CastPage: React.FC = () => {
   }, [file])
 
   useEffect(() => {
-    if (editingSourceId === null) {
+    if (selectType !== 'edit') return
+    if (selectingSourceId === null) {
       setEditingSourceName('')
       return
     }
-    const source = sources?.find(s => s.id === editingSourceId)
+    const source = sources?.find(s => s.id === selectingSourceId)
     if (!source) return
     setEditingSourceName(source.name)
-  }, [editingSourceId])
+  }, [selectType, selectingSourceId])
 
   useEffect(() => {
     const timerId = setInterval(() => {
@@ -552,14 +551,30 @@ const CastPage: React.FC = () => {
                       <ScheduleRowTime>{s.scheduledAt.toLocaleTimeString()}</ScheduleRowTime>
                     </ScheduleRowDateTime>
                   </ScheduleRowHeader>
-                  <ScheduleRowBody>
-                    <ScheduleRowSourceName>{sources?.find(source => source.id === s.sourceId)?.name ?? '-'}</ScheduleRowSourceName>
-                    <ScheduleRowActions>
-                      <ActionButton onClick={() => handleDeleteSchedule(s.id)}>
+                  <ScheduleRowSourceName>
+                    <div>
+                      {sources?.find(source => source.id === s.sourceId)?.name ?? '-'}
+                    </div>
+                  </ScheduleRowSourceName>
+                  <ScheduleRowActions>
+                    {selectingScheduleId !== s.id && (
+                      <ActionButton onClick={() => setSelectingScheduleId(s.id)}>
                         <TrashIcon weight="fill" />
                       </ActionButton>
-                    </ScheduleRowActions>
-                  </ScheduleRowBody>
+                    )}
+                    {selectingScheduleId === s.id && (
+                      <>
+                        <ActionButton
+                          color="danger"
+                          onClick={() => handleDeleteSchedule(s.id)}>
+                          <TrashIcon />
+                        </ActionButton>
+                        <ActionButton onClick={() => setSelectingScheduleId(null)}>
+                          <XIcon />
+                        </ActionButton>
+                      </>
+                    )}
+                  </ScheduleRowActions>
                 </ScheduleRow>
               ))}
             </ScheduleTable>
@@ -615,10 +630,12 @@ const CastPage: React.FC = () => {
                       <SourceRowNowPlaying isActive={playingSource?.id === source.id} />
                     </SourceRowIndicator>
                     <SourceRowTitle>
-                      {editingSourceId !== source.id && (
-                        <>{source.name}</>
+                      {(selectType !== 'edit' || (selectType === 'edit' && selectingSourceId !== source.id)) && (
+                        <div>
+                          {source.name}<small>(No.{source.id})</small>
+                        </div>
                       )}
-                      {editingSourceId === source.id && (
+                      {selectType === 'edit' && selectingSourceId === source.id && (
                         <FormInput
                           onChange={e => setEditingSourceName(e.target.value)}
                           onKeyDown={handleKeyDownSourceName}
@@ -628,9 +645,12 @@ const CastPage: React.FC = () => {
                       )}
                     </SourceRowTitle>
                     <SourceRowActions>
-                      {editingSourceId !== source.id && (
+                      {selectingSourceId !== source.id && (
                         <>
-                          <ActionButton onClick={() => handleBroadcastPlay(source.id)}>
+                          <ActionButton onClick={() => {
+                            setSelectType('broadcast')
+                            setSelectingSourceId(source.id)
+                          }}>
                             <BroadcastIcon weight="fill" />
                           </ActionButton>
                           <ActionButton
@@ -638,22 +658,61 @@ const CastPage: React.FC = () => {
                             onClick={() => handleManualPlay(source.id)}>
                             <PlayIcon weight="fill" />
                           </ActionButton>
-                          <ActionButton onClick={() => setEditingSourceId(source.id)}>
+                          <ActionButton onClick={() => {
+                            setSelectType('edit')
+                            setSelectingSourceId(source.id)
+                          }}>
                             <PencilSimpleIcon weight="fill" />
                           </ActionButton>
-                          <ActionButton onClick={() => handleDeleteSource(source.id)}>
+                          <ActionButton onClick={() => {
+                            setSelectType('delete')
+                            setSelectingSourceId(source.id)
+                          }}>
                             <TrashIcon weight="fill" />
                           </ActionButton>
                         </>
                       )}
-                      {editingSourceId === source.id && (
+                      {selectType === 'edit' && selectingSourceId === source.id && (
                         <>
                           <ActionButton
                             disabled={!editingSourceName}
                             onClick={handleSaveSourceName}>
                             <FloppyDiskIcon />
                           </ActionButton>
-                          <ActionButton onClick={() => setEditingSourceId(null)}>
+                          <ActionButton onClick={() => {
+                            setSelectType(null)
+                            setSelectingSourceId(null)
+                          }}>
+                            <XIcon />
+                          </ActionButton>
+                        </>
+                      )}
+                      {selectType === 'broadcast' && selectingSourceId === source.id && (
+                        <>
+                          <ActionButton
+                            color="danger"
+                            onClick={() => handleBroadcastPlay(source.id)}>
+                            <BroadcastIcon weight="fill" />
+                          </ActionButton>
+                          <ActionButton onClick={() => {
+                            setSelectType(null)
+                            setSelectingSourceId(null)
+                          }}>
+                            <XIcon />
+                          </ActionButton>
+                        </>
+                      )}
+                      {selectType === 'delete' && selectingSourceId === source.id && (
+                        <>
+                          <ActionButton
+                            color="danger"
+                            onClick={() => handleDeleteSource(source.id)}>
+                            <TrashIcon weight="fill" />
+                          </ActionButton>
+                          <ActionButton onClick={() => {
+                            setSelectType(null)
+                            setSelectingSourceId(null)
+                          }}>
                             <XIcon />
                           </ActionButton>
                         </>
@@ -780,11 +839,15 @@ const ScheduleTable = styled.div`
 `
 const ScheduleRow = styled.div`
   display: grid;
-  grid-template-columns: 128px 1fr;
+  grid-template-columns: 128px 1fr 200px;
   gap: 10px;
   background-color: var(--card-background-color);
   padding: 10px;
   border-radius: 10px;
+  @media screen and (max-width: 840px) {
+    gap: 10px 5px;
+    grid-template-columns: 128px 1fr;
+  }
 `
 const ScheduleRowHeader = styled.div`
   display: flex;
@@ -799,11 +862,6 @@ const ScheduleRowIndicatorLabel = styled.div<{ isActive?: boolean }>`
   color: var(--indicator-text-color);
   text-align: center;
 `
-const ScheduleRowBody = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 64px;
-  align-items: center;
-`
 const ScheduleRowDateTime = styled.div`
   display: flex;
   flex-direction: column;
@@ -815,10 +873,20 @@ const ScheduleRowDate = styled.span`
 `
 const ScheduleRowTime = styled.span``
 const ScheduleRowSourceName = styled.div`
+  display: flex;
   font-size: 1.2em;
+  align-items: center;
+  @media screen and (max-width: 840px) {
+    font-size: 1em;
+  }
 `
 const ScheduleRowActions = styled.div`
-  height: 100%;
+  display: flex;
+  gap: 5px;
+  @media screen and (max-width: 840px) {
+    gap: 10px;
+    grid-column: 1 / -1;
+  }
 `
 const SourceTable = styled.div`
   display: flex;
@@ -832,6 +900,10 @@ const SourceRow = styled.div`
   background-color: var(--card-background-color);
   padding: 10px;
   border-radius: 10px;
+  @media screen and (max-width: 840px) {
+    gap: 10px 5px;
+    grid-template-columns: 48px 1fr;
+  }
 `
 const SourceRowIndicator = styled.div`
   display: flex;
@@ -851,8 +923,15 @@ const SourceRowTitle = styled.div`
   display: flex;
   align-items: center;
   font-size: 1.2em;
+  @media screen and (max-width: 840px) {
+    font-size: 1em;
+  }
 `
 const SourceRowActions = styled.div`
   display: flex;
   gap: 5px;
+  @media screen and (max-width: 840px) {
+    gap: 10px;
+    grid-column: 1 / -1;
+  }
 `
