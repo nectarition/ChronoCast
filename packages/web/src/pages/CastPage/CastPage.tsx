@@ -347,7 +347,7 @@ const CastPage: React.FC = () => {
             <Indicator>
               <IndicatorStatusIcon isActive={connectionStatus === 'open'} />
               <IndicatorText>
-                フォルダ同期: {
+                システム同期: {
                   connectionStatus === 'open'
                     ? '同期完了'
                     : connectionStatus === 'connecting'
