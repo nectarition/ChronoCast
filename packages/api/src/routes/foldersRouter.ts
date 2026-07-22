@@ -89,6 +89,53 @@ router.post('/folders/:folderKey/sources', requiredLogin, async c => {
   return c.json({ id: source.id })
 })
 
+router.patch('/folders/:folderKey/sources/:sourceId', requiredLogin, async c => {
+  const folderKey = c.req.param('folderKey')
+
+  const sourceId = Number(c.req.param('sourceId'))
+  if (isNaN(sourceId)) {
+    throw APIError.invalidArgument('sourceId is invalid')
+  }
+
+  const body = await c.req.json()
+  const { name } = body
+  if (!name) {
+    throw APIError.invalidArgument('name is required')
+  }
+
+  const prisma = c.get('prisma')
+
+  const folder = await prisma.folder.findUnique({
+    where: { slug: folderKey }
+  })
+  if (!folder) {
+    throw APIError.notFound()
+  }
+
+  const source = await prisma.source.findUnique({
+    where: {
+      id: sourceId
+    }
+  })
+  if (!source || source.folderId !== folder.id) {
+    throw APIError.notFound()
+  }
+
+  await prisma.source.update({
+    where: { id: sourceId },
+    data: { name }
+  })
+
+  const folderDO = getFolderSchedulerStub(c, folder.slug)
+  await folderDO.broadcastUpdateSource({
+    id: source.id,
+    folderKey: folder.slug,
+    name
+  })
+
+  return c.json({ success: true })
+})
+
 router.post('/folders/:folderKey/sources/:sourceId/file', requiredLogin, async c => {
   const folderKey = c.req.param('folderKey')
   if (!folderKey) {

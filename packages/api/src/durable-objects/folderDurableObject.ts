@@ -52,6 +52,22 @@ export class FolderDurableObject extends DurableObject<Env> {
     }
   }
 
+  async broadcastUpdateSource(source: SourceEntry): Promise<void> {
+    const payload: Socket.SourceUpdateEvent = {
+      type: 'SOURCE_UPDATE',
+      sourceId: source.id,
+      name: source.name
+    }
+    for (const ws of this.ctx.getWebSockets()) {
+      try {
+        ws.send(JSON.stringify(payload))
+      }
+      catch (err) {
+        console.error('Failed to send update source notification:', err)
+      }
+    }
+  }
+
   async broadcastRemoveSource(sourceId: number): Promise<void> {
     const payload: Socket.SourceRemoveEvent = {
       type: 'SOURCE_REMOVE',
