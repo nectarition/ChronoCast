@@ -180,13 +180,14 @@ const CastPage: React.FC = () => {
               fileInputRef.current.value = ''
             }
           })
+          .finally(() => {
+            setIsProgressForSource(false)
+          })
       })
       .catch(err => {
         toast.error('音源の追加に失敗しました')
-        throw err
-      })
-      .finally(() => {
         setIsProgressForSource(false)
+        throw err
       })
   }, [folderKey, file, sourceName, addSourceAsync, uploadSourceAsync])
 
