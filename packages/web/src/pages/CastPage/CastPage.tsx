@@ -4,6 +4,7 @@ import styled from '@emotion/styled'
 import {
   ArrowClockwiseIcon,
   ArrowLeftIcon,
+  BroadcastIcon,
   FloppyDiskIcon,
   PencilSimpleIcon,
   PlayIcon,
@@ -38,6 +39,7 @@ const CastPage: React.FC = () => {
     addScheduleAsync,
     addSourceAsync,
     deleteScheduleAsync,
+    broadcastPlaySourceAsync,
     deleteSourceAsync,
     getSourceURLAsync,
     uploadSourceAsync,
@@ -208,6 +210,19 @@ const CastPage: React.FC = () => {
     playWithSource(sourceId)
   }, [playWithSource])
 
+  const handleBroadcastPlay = useCallback((sourceId: number) => {
+    if (!folderKey) return
+    const abort = new AbortController()
+    broadcastPlaySourceAsync(folderKey, sourceId, abort)
+      .then(() => {
+        toast.success('放送依頼を送信しました')
+      })
+      .catch(err => {
+        toast.error('放送依頼に失敗しました')
+        throw err
+      })
+  }, [folderKey, broadcastPlaySourceAsync])
+
   const handleLoadedMetadata = useCallback(() => {
     if (!audioRef.current) return
     setDuration(audioRef.current.duration)
@@ -330,6 +345,7 @@ const CastPage: React.FC = () => {
           case 'SCHEDULE_NEXT':
             setNextScheduleId(event.scheduleId)
             return
+          case 'SOURCE_PLAY':
           case 'SCHEDULE_PLAY': {
             playWithSource(event.sourceId)
             return
@@ -614,6 +630,9 @@ const CastPage: React.FC = () => {
                     <SourceRowActions>
                       {editingSourceId !== source.id && (
                         <>
+                          <ActionButton onClick={() => handleBroadcastPlay(source.id)}>
+                            <BroadcastIcon weight="fill" />
+                          </ActionButton>
                           <ActionButton
                             disabled={isMuted}
                             onClick={() => handleManualPlay(source.id)}>
@@ -808,7 +827,7 @@ const SourceTable = styled.div`
 `
 const SourceRow = styled.div`
   display: grid;
-  grid-template-columns: 48px 1fr 138px;
+  grid-template-columns: 48px 1fr 200px;
   gap: 5px;
   background-color: var(--card-background-color);
   padding: 10px;

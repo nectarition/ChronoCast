@@ -41,11 +41,6 @@ namespace Socket {
     type: 'CONNECTION_UPDATE'
     connectionCount: number
   }
-  export type SchedulePlayEvent = {
-    type: 'SCHEDULE_PLAY'
-    scheduleId: number
-    sourceId: number
-  }
   export type ScheduleAddEvent = {
     type: 'SCHEDULE_ADD'
     scheduleId: number
@@ -71,6 +66,10 @@ namespace Socket {
     sourceId: number
     name: string
   }
+  export type SourcePlayEvent = {
+    type: 'SOURCE_PLAY'
+    sourceId: number
+  }
   export type SourceRemoveEvent = {
     type: 'SOURCE_REMOVE'
     sourceId: number
@@ -88,6 +87,7 @@ namespace Socket {
     | ScheduleRemoveEvent
     | SourceAddEvent
     | SourceUpdateEvent
+    | SourcePlayEvent
     | SourceRemoveEvent
     | TimeAdjustmentEvent
 }
