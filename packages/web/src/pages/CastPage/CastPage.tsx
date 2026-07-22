@@ -917,14 +917,17 @@ const SourceRow = styled.div`
   padding: 10px;
   border-radius: 10px;
   @media screen and (max-width: 840px) {
-    gap: 10px 5px;
-    grid-template-columns: 48px 1fr;
+    gap: 10px;
+    grid-template-columns: 16px 1fr;
   }
 `
 const SourceRowIndicator = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
+  @media screen and (max-width: 840px) {
+    justify-content: flex-start;
+  }
 `
 const SourceRowNowPlaying = styled.span<{ isActive?: boolean }>`
   display: inline-block;
