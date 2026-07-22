@@ -70,6 +70,9 @@ namespace Socket {
     type: 'SOURCE_PLAY'
     sourceId: number
   }
+  export type SourceStopEvent = {
+    type: 'SOURCE_STOP'
+  }
   export type SourceRemoveEvent = {
     type: 'SOURCE_REMOVE'
     sourceId: number
@@ -81,13 +84,13 @@ namespace Socket {
 
   export type Event =
     | ConnectionUpdateEvent
-    | SchedulePlayEvent
     | ScheduleNextEvent
     | ScheduleAddEvent
     | ScheduleRemoveEvent
     | SourceAddEvent
     | SourceUpdateEvent
     | SourcePlayEvent
+    | SourceStopEvent
     | SourceRemoveEvent
     | TimeAdjustmentEvent
 }

@@ -7,7 +7,7 @@ import APIError from '../libs/APIError'
 import requiredLogin from '../middlewares/requiredLogin'
 import s3Service from '../services/s3Service'
 
-const getFolderSchedulerStub = (c: APIContext, folderKey: string) => {
+const getFolderDurableObjectStub = (c: APIContext, folderKey: string) => {
   const id = c.env.FOLDER_DO.idFromName(folderKey)
   return c.env.FOLDER_DO.get(id)
 }
@@ -89,6 +89,29 @@ router.post('/folders/:folderKey/sources', requiredLogin, async c => {
   return c.json({ id: source.id })
 })
 
+router.delete('/folders/:folderKey/sources/broadcast', requiredLogin, async c => {
+  const folderKey = c.req.param('folderKey')
+  if (!folderKey) {
+    throw APIError.invalidArgument('folderKey is required')
+  }
+
+  const prisma = c.get('prisma')
+
+  const folder = await prisma.folder.findUnique({
+    where: {
+      slug: folderKey
+    }
+  })
+  if (!folder) {
+    throw APIError.notFound()
+  }
+
+  const folderDO = getFolderDurableObjectStub(c, folderKey)
+  await folderDO.broadcastStopSource()
+
+  return c.json({ success: true })
+})
+
 router.patch('/folders/:folderKey/sources/:sourceId', requiredLogin, async c => {
   const folderKey = c.req.param('folderKey')
 
@@ -126,7 +149,7 @@ router.patch('/folders/:folderKey/sources/:sourceId', requiredLogin, async c => 
     data: { name }
   })
 
-  const folderDO = getFolderSchedulerStub(c, folder.slug)
+  const folderDO = getFolderDurableObjectStub(c, folder.slug)
   await folderDO.broadcastUpdateSource({
     id: source.id,
     folderKey: folder.slug,
@@ -176,7 +199,7 @@ router.post('/folders/:folderKey/sources/:sourceId/file', requiredLogin, async c
 
   await s3Service.uploadFileAsync(c, `sources/${folderKey}/${sourceId}`, file)
 
-  const folderDO = getFolderSchedulerStub(c, folderKey)
+  const folderDO = getFolderDurableObjectStub(c, folderKey)
   await folderDO.broadcastAddSource({
     id: source.id,
     folderKey: folder.slug,
@@ -217,7 +240,7 @@ router.post('/folders/:folderKey/sources/:sourceId/broadcast', requiredLogin, as
     throw APIError.notFound()
   }
 
-  const folderDO = getFolderSchedulerStub(c, folderKey)
+  const folderDO = getFolderDurableObjectStub(c, folderKey)
   await folderDO.broadcastPlaySource(sourceId)
 
   return c.json({ success: true })
@@ -262,7 +285,7 @@ router.delete('/folders/:folderKey/sources/:sourceId', requiredLogin, async c =>
     }
   })
 
-  const folderDO = getFolderSchedulerStub(c, folderKey)
+  const folderDO = getFolderDurableObjectStub(c, folderKey)
   await folderDO.broadcastRemoveSource(sourceId)
 
   return c.json({ success: true })
@@ -381,7 +404,7 @@ router.post('/folders/:folderKey/schedules', requiredLogin, async c => {
     }
   })
 
-  const scheduler = getFolderSchedulerStub(c, folderKey)
+  const scheduler = getFolderDurableObjectStub(c, folderKey)
   await scheduler.addSchedule({
     id: schedule.id,
     sourceId: schedule.sourceId,
@@ -434,7 +457,7 @@ router.delete('/folders/:folderKey/schedules/:scheduleId', requiredLogin, async 
     }
   })
 
-  const scheduler = getFolderSchedulerStub(c, folderKey)
+  const scheduler = getFolderDurableObjectStub(c, folderKey)
   await scheduler.removeSchedule(scheduleId)
 
   return c.json({ success: true })
@@ -471,7 +494,7 @@ router.get('/folders/:folderKey/ws', async c => {
     throw APIError.notFound()
   }
 
-  const scheduler = getFolderSchedulerStub(c, folderKey)
+  const scheduler = getFolderDurableObjectStub(c, folderKey)
   return await scheduler.fetch(c.req.raw)
 })
 
