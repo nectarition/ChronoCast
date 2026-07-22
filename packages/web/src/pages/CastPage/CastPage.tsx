@@ -448,7 +448,7 @@ const CastPage: React.FC = () => {
                     : connectionStatus === 'connecting'
                       ? '同期処理中'
                       : '未同期'
-                } (端末数: {connectionCount})
+                } (接続数: {connectionCount})
               </IndicatorText>
             </Indicator>
           </Indicators>
