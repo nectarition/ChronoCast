@@ -103,14 +103,16 @@ const CastPage: React.FC = () => {
     resetDuration()
   }, [])
 
-  const playWithSource = useCallback((source: SourceWithURL) => {
-    if (!audioRef.current || audioRef.current.muted) return
+  const playWithSource = useCallback((sourceId: number) => {
+    if (!sources || !audioRef.current || audioRef.current.muted) return
+    const source = sources.find(s => s.id === sourceId)
+    if (!source) return
     resetDuration()
     setPlayingSource(source)
     audioRef.current.src = source.url
     audioRef.current.play()
       .catch(err => console.error('Playback failed:', err))
-  }, [])
+  }, [sources])
 
   const formatSeconds = useCallback((seconds: number) => {
     const minutes = Math.floor(seconds / 60)
@@ -203,11 +205,8 @@ const CastPage: React.FC = () => {
   }, [folderKey, deleteSourceAsync])
 
   const handleManualPlay = useCallback((sourceId: number) => {
-    if (isMuted || !sources) return
-    const source = sources.find(s => s.id === sourceId)
-    if (!source) return
-    playWithSource(source)
-  }, [isMuted, sources])
+    playWithSource(sourceId)
+  }, [playWithSource])
 
   const handleLoadedMetadata = useCallback(() => {
     if (!audioRef.current) return
@@ -332,14 +331,10 @@ const CastPage: React.FC = () => {
             setNextScheduleId(event.scheduleId)
             return
           case 'SCHEDULE_PLAY': {
-            const source = sources.find(s => s.id === event.sourceId)
-            if (!source) return
-            playWithSource(source)
+            playWithSource(event.sourceId)
             return
           }
           case 'SCHEDULE_ADD': {
-            const source = sources.find(s => s.id === event.sourceId)
-            if (!source) return
             setSchedules(s => s && ([...s, {
               id: event.scheduleId,
               sourceId: event.sourceId,
@@ -361,7 +356,7 @@ const CastPage: React.FC = () => {
       disconnectSocket()
       abort.abort()
     }
-  }, [folderKey, sources, connectSocket, getSourceURLAsync])
+  }, [folderKey, playWithSource, connectSocket, getSourceURLAsync])
 
   useEffect(() => {
     if (!file) return
