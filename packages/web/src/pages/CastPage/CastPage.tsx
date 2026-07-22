@@ -41,7 +41,8 @@ const CastPage: React.FC = () => {
     connectSocket
   } = useCast()
 
-  const [now, setNow] = useState(new Date())
+  const [clientNow, setClientNow] = useState<number>(Date.now())
+  const [timeDiff, setTimeDiff] = useState<number>()
   const audioRef = useRef<HTMLAudioElement>(null)
   const [isMuted, setIsMuted] = useState(true)
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatusType>()
@@ -68,6 +69,11 @@ const CastPage: React.FC = () => {
     if (connectionStatus === 'open' && isMuted) return false
     return !!playingSource
   }, [connectionStatus, isMuted, playingSource])
+
+  const now = useMemo(() => {
+    if (timeDiff === undefined) return undefined
+    return new Date(clientNow + timeDiff)
+  }, [clientNow, timeDiff])
 
   const resetDuration = useCallback(() => {
     setDuration(0)
@@ -247,6 +253,9 @@ const CastPage: React.FC = () => {
       folderKey,
       event => {
         switch (event.type) {
+          case 'TIME_ADJUSTMENT':
+            setTimeDiff(event.now - Date.now())
+            return
           case 'CONNECTION_UPDATE':
             setConnectionCount(event.connectionCount)
             return
@@ -305,11 +314,11 @@ const CastPage: React.FC = () => {
   }, [folderKey, sources, connectSocket, getSourceURLAsync])
 
   useEffect(() => {
-    const intervalId = setInterval(() => {
-      setNow(new Date())
+    const timerId = setInterval(() => {
+      setClientNow(Date.now())
     }, 500)
     return () => {
-      clearInterval(intervalId)
+      clearInterval(timerId)
     }
   }, [])
 
@@ -324,8 +333,18 @@ const CastPage: React.FC = () => {
           ref={audioRef} />
         <IndicatorSection>
           <Clock isActive={isActive}>
-            <ClockDate>{now.toLocaleDateString()}</ClockDate>
-            <ClockTime>{now.toLocaleTimeString()}</ClockTime>
+            {now && (
+              <>
+                <ClockDate>{now.toLocaleDateString()}</ClockDate>
+                <ClockTime>{now.toLocaleTimeString()}</ClockTime>
+              </>
+            )}
+            {now === undefined && (
+              <>
+                <ClockDate>--/--/----</ClockDate>
+                <ClockTime>--:--:--</ClockTime>
+              </>
+            )}
           </Clock>
           <Indicators>
             <Indicator>
@@ -347,7 +366,7 @@ const CastPage: React.FC = () => {
             <Indicator>
               <IndicatorStatusIcon isActive={connectionStatus === 'open'} />
               <IndicatorText>
-                フォルダ同期: {
+                システム同期: {
                   connectionStatus === 'open'
                     ? '同期完了'
                     : connectionStatus === 'connecting'
@@ -444,7 +463,7 @@ const CastPage: React.FC = () => {
                       {
                         s.id === nextScheduleId
                           ? '次に放送'
-                          : s.scheduledAt < now
+                          : now && s.scheduledAt < now
                             ? '放送済み'
                             : 'スケジュール済み'
                       }

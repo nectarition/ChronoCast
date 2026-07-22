@@ -70,6 +70,10 @@ namespace Socket {
     type: 'SOURCE_REMOVE'
     sourceId: number
   }
+  export type TimeAdjustmentEvent = {
+    type: 'TIME_ADJUSTMENT'
+    now: number
+  }
 
   export type Event =
     | ConnectionUpdateEvent
@@ -79,4 +83,5 @@ namespace Socket {
     | ScheduleRemoveEvent
     | SourceAddEvent
     | SourceRemoveEvent
+    | TimeAdjustmentEvent
 }
