@@ -612,13 +612,13 @@ const CastPage: React.FC = () => {
                     <SourceRowActions>
                       {editingSourceId !== source.id && (
                         <>
-                          <ActionButton onClick={() => setEditingSourceId(source.id)}>
-                            <PencilSimpleIcon weight="fill" />
-                          </ActionButton>
                           <ActionButton
                             disabled={isMuted}
                             onClick={() => handleManualPlay(source.id)}>
                             <PlayIcon weight="fill" />
+                          </ActionButton>
+                          <ActionButton onClick={() => setEditingSourceId(source.id)}>
+                            <PencilSimpleIcon weight="fill" />
                           </ActionButton>
                           <ActionButton onClick={() => handleDeleteSource(source.id)}>
                             <TrashIcon weight="fill" />
