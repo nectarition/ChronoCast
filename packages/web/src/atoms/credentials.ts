@@ -2,7 +2,7 @@ import { atom } from 'jotai'
 import { atomWithStorage } from 'jotai/utils'
 import type { LoggedInUser } from 'chronocast'
 
-const loginTokenKey = 'sockbase_loginToken'
+const loginTokenKey = 'chronocast_loginToken'
 const loginTokenAtom = atomWithStorage<string | null>(loginTokenKey, null)
 
 const apiTokenAtom = atom<string | null>(null)

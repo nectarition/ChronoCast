@@ -252,7 +252,6 @@ const CastPage: React.FC = () => {
         }))
         setInitialSources(sourcesWithUrls)
         setSources(sourcesWithUrls)
-        toast.success('音源を読み込みました')
       })
       .catch(err => {
         if (err.name !== 'APIError') return
@@ -293,7 +292,6 @@ const CastPage: React.FC = () => {
     getSchedulesByFolderKeyAsync(folderKey, abort)
       .then(fetchedSchedules => {
         setSchedules(fetchedSchedules)
-        toast.success('スケジュールを読み込みました')
       })
       .catch(err => {
         if (err.name !== 'APIError') return

@@ -1,6 +1,7 @@
 import crypto from 'crypto'
 import { AuthenticateResult, LoginResult } from 'chronocast'
 import { Hono } from 'hono'
+import { errorCodes } from '../constants/errorCodes'
 import jwtHelper from '../helpers/jwtHelper'
 import APIError from '../libs/APIError'
 import type { APIEnv } from '../@types'
@@ -9,6 +10,9 @@ const accountsRouter = new Hono<APIEnv>()
 
 accountsRouter.post('/accounts/login', async c => {
   const { loginToken } = await c.req.json()
+  if (!loginToken) {
+    throw new APIError(errorCodes.unauthorized, 'Login token is required')
+  }
   const prisma = c.get('prisma')
   const payload = await jwtHelper.verifyLoginTokenAsync(c, loginToken)
   if (!payload) {
