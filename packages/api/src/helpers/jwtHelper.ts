@@ -1,6 +1,7 @@
 import { sign, verify } from 'hono/jwt'
 import { EncryptJWT, jwtDecrypt, jwtVerify, createRemoteJWKSet } from 'jose'
 import { APIContext, LoggedInUser } from '../@types'
+import { errorCodes } from '../constants/errorCodes'
 import APIError from '../libs/APIError'
 
 const signLoginTokenAsync = async (c: APIContext, user: LoggedInUser) => {
@@ -9,7 +10,7 @@ const signLoginTokenAsync = async (c: APIContext, user: LoggedInUser) => {
     throw new Error('JWT secret not configured')
   }
 
-  return await signCoreAsync(secret, user.id, 60 * 24)
+  return await signCoreAsync(secret, user.id, 60 * 60 * 24 * 3)
 }
 
 const signAPITokenAsync = async (c: APIContext, user: LoggedInUser) => {
@@ -18,13 +19,13 @@ const signAPITokenAsync = async (c: APIContext, user: LoggedInUser) => {
     throw new Error('JWT secret not configured')
   }
 
-  return await signCoreAsync(secret, user.id, 30)
+  return await signCoreAsync(secret, user.id, 60 * 60 * 24)
 }
 
-const signCoreAsync = async (secret: string, userId: number, expiredMinutes: number) => {
+const signCoreAsync = async (secret: string, userId: number, expiredSeconds: number) => {
   const payload = {
     uid: userId,
-    exp: Math.floor(Date.now() / 1000) + 60 * expiredMinutes
+    exp: Math.floor(Date.now() / 1000) + expiredSeconds
   }
 
   const token = await sign(payload, secret)
@@ -60,9 +61,11 @@ const verifyCoreAsync = async (token: string, secret: string) => {
     }
 
     return user
-  } catch (err: any) {
-    if (err?.message.includes('expired')) {
-      throw APIError.invalidArgument('Token expired')
+  }
+  catch (err: unknown) {
+    const error: Error = err as Error
+    if (error.name === 'JwtTokenExpired') {
+      throw new APIError(errorCodes.unauthorized, 'State token expired')
     }
     throw err
   }
@@ -85,7 +88,7 @@ const signStateTokenAsync = async (c: APIContext, requestId: string, codeVerifie
     .setProtectedHeader({ alg: 'dir', enc: 'A256GCM' })
     .setExpirationTime('10m')
     .encrypt(key)
-  
+
   return jwe
 }
 
@@ -98,16 +101,18 @@ const verifyStateTokenAsync = async (c: APIContext, token: string) => {
   try {
     const key = new TextEncoder().encode(secret.padEnd(32, '0').slice(0, 32))
     const decryptResult = await jwtDecrypt<{ requestId: string; codeVerifier: string }>(token, key)
-    
+
     if (!decryptResult.payload.requestId || !decryptResult.payload.codeVerifier) {
       return null
     }
     return decryptResult.payload as { requestId: string; codeVerifier: string }
-  } catch (err: any) {
-    if (err?.code === 'ERR_JWT_EXPIRED') {
-      throw APIError.invalidArgument('State expired')
+  }
+  catch (err: unknown) {
+    const error: Error = err as Error
+    if (error.name === 'JwtTokenExpired') {
+      throw new APIError(errorCodes.unauthorized, 'State token expired')
     }
-    throw APIError.invalidArgument('Invalid state token')
+    throw err
   }
 }
 
@@ -119,20 +124,21 @@ const verifyIdTokenAsync = async (
 ) => {
   try {
     const JWKS = createRemoteJWKSet(new URL(jwksUri))
-    
+
     const result = await jwtVerify(idToken, JWKS, {
       audience: expectedAudience,
       issuer: expectedIssuer
     })
-    
+
     return result.payload as {
       sub: string
       email: string
       name?: string
       nonce: string
-      [key: string]: any
+      [key: string]: unknown
     }
-  } catch (err: any) {
+  }
+  catch {
     throw APIError.invalidArgument('ID Token verification failed')
   }
 }
