@@ -1,7 +1,6 @@
 import { useCallback } from 'react'
 import useAccount from './useAccount'
 import useFetch from './useFetch'
-import useToken from './useToken'
 import type { AuthenticateResult, AuthorizeURLResult, LoginResult } from 'chronocast'
 
 interface UseNectaritionID {
@@ -11,7 +10,6 @@ interface UseNectaritionID {
 
 const useNectaritionID = (): UseNectaritionID => {
   const { getAsync, postAsync } = useFetch()
-  const { setLoginToken } = useToken()
   const { loginAsync } = useAccount()
 
   const getAuthorizeURLAsync = useCallback(async (abort: AbortController) => {
@@ -21,9 +19,8 @@ const useNectaritionID = (): UseNectaritionID => {
 
   const processCallbackAsync = useCallback(async (code: string, state: string, abort: AbortController) => {
     return await postAsync<AuthenticateResult>('/accounts/oidc-callback', { code, state }, { abort })
-      .then(async (res) => {
-        setLoginToken(res.loginToken)
-        const loginResult = await loginAsync(res.loginToken, abort)
+      .then(async () => {
+        const loginResult = await loginAsync(abort)
         return loginResult
       })
       .catch(err => { throw err })

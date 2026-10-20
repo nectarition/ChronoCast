@@ -27,3 +27,5 @@ dist-ssr
 .firebase
 
 .env
+
+*.pem

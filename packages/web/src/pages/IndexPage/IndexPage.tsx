@@ -42,8 +42,9 @@ const IndexPage: React.FC = () => {
   }, [folderKey, handleFetch])
 
   const handleLogout = useCallback(() => {
-    logoutAsync()
-      .then(() => navigate('/login', { replace: true }))
+    navigate('/login')
+    const abort = new AbortController()
+    logoutAsync(abort)
   }, [navigate, logoutAsync])
 
   return (
