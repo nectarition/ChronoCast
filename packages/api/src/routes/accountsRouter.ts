@@ -168,7 +168,17 @@ accountsRouter.post('/accounts/oidc-callback', async c => {
   const loginToken = await jwtHelper.signLoginTokenAsync(c, { id: user.id })
   setLoginTokenCookie(c, loginToken)
 
-  return c.json({ success: true })
+  const apiToken = await jwtHelper.signAPITokenAsync(c, { id: user.id })
+
+  const result: LoginResult = {
+    apiToken,
+    user: {
+      email: user.email,
+      isActive: user.isActive
+    }
+  }
+
+  return c.json(result)
 })
 
 export default accountsRouter
