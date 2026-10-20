@@ -1,16 +1,17 @@
 import { useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import useAccount from '../hooks/useAccount'
-import useToken from '../hooks/useToken'
 
 interface Props {
   children: React.ReactNode
 }
 const AuthenticationProvider: React.FC<Props> = props => {
   const { user, loginDirectlyAsync } = useAccount()
-  const { isReady } = useToken()
+  const location = useLocation()
 
   useEffect(() => {
-    if (user !== undefined || !isReady) return
+    if (user !== undefined) return
+    if (location.pathname === '/oidc/callback') return
     const abort = new AbortController()
     loginDirectlyAsync(abort)
       .catch(err => {
@@ -18,7 +19,7 @@ const AuthenticationProvider: React.FC<Props> = props => {
         throw err
       })
     return () => abort.abort()
-  }, [isReady, user, loginDirectlyAsync])
+  }, [user, location.pathname, loginDirectlyAsync])
 
   return (
     <>

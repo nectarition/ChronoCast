@@ -1,18 +1,40 @@
 import crypto from 'crypto'
-import { AuthenticateResult, LoginResult } from 'chronocast'
+import { LoginResult } from 'chronocast'
 import { Hono } from 'hono'
+import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import { errorCodes } from '../constants/errorCodes'
 import jwtHelper from '../helpers/jwtHelper'
 import APIError from '../libs/APIError'
-import type { APIEnv } from '../@types'
+import type { APIContext, APIEnv } from '../@types'
 
 const accountsRouter = new Hono<APIEnv>()
 
+const LOGIN_TOKEN_COOKIE_NAME = 'nct_chronocast_login_token'
+const LOGIN_TOKEN_COOKIE_MAX_AGE = 60 * 60 * 24 * 3 // 3 days
+
+const loginTokenCookieOptions = {
+  httpOnly: true,
+  secure: true,
+  sameSite: 'None' as const,
+  path: '/accounts',
+  maxAge: LOGIN_TOKEN_COOKIE_MAX_AGE
+}
+
+const setLoginTokenCookie = (c: APIContext, loginToken: string) => {
+  setCookie(c, LOGIN_TOKEN_COOKIE_NAME, loginToken, loginTokenCookieOptions)
+}
+
+const clearLoginTokenCookie = (c: APIContext) => {
+  deleteCookie(c, LOGIN_TOKEN_COOKIE_NAME, loginTokenCookieOptions)
+}
+
 accountsRouter.post('/accounts/login', async c => {
-  const { loginToken } = await c.req.json()
+  const loginToken = getCookie(c, LOGIN_TOKEN_COOKIE_NAME)
   if (!loginToken) {
+    clearLoginTokenCookie(c)
     throw new APIError(errorCodes.unauthorized, 'Login token is required')
   }
+
   const prisma = c.get('prisma')
   const payload = await jwtHelper.verifyLoginTokenAsync(c, loginToken)
   if (!payload) {
@@ -37,6 +59,11 @@ accountsRouter.post('/accounts/login', async c => {
   }
 
   return c.json(result)
+})
+
+accountsRouter.post('/accounts/logout', async c => {
+  clearLoginTokenCookie(c)
+  return c.json({ success: true })
 })
 
 accountsRouter.get('/accounts/authorize-url', async c => {
@@ -139,12 +166,9 @@ accountsRouter.post('/accounts/oidc-callback', async c => {
   }
 
   const loginToken = await jwtHelper.signLoginTokenAsync(c, { id: user.id })
+  setLoginTokenCookie(c, loginToken)
 
-  const result: AuthenticateResult = {
-    loginToken
-  }
-
-  return c.json(result)
+  return c.json({ success: true })
 })
 
 export default accountsRouter

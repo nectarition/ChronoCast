@@ -14,12 +14,13 @@ interface IUseFetch {
 }
 
 const useFetch = (): IUseFetch => {
-  const { loginToken, apiToken, setLoginToken, setAPIToken } = useToken()
+  const { apiToken, setAPIToken } = useToken()
   const setUser = useSetAtom(userAtom)
   const { interpretError } = useAPIError()
 
   const axios = create({
-    baseURL: import.meta.env.VITE_API_BASE_URL
+    baseURL: import.meta.env.VITE_API_BASE_URL,
+    withCredentials: true
   })
 
   let retryPromise: Promise<LoginResult> | null = null
@@ -32,14 +33,13 @@ const useFetch = (): IUseFetch => {
       else if (retryPromise && err.response.status === 401) {
         setAPIToken(null)
         setUser(null)
-        setLoginToken(null)
         retryPromise = null
         throw err
       }
       else if (apiToken && err.response.status === 401) {
         if (!retryPromise) {
           const loginAsync = async (): Promise<LoginResult> => {
-            const result = await axios.post<LoginResult>('/accounts/login', { loginToken })
+            const result = await axios.post<LoginResult>('/accounts/login')
             return result.data
           }
           retryPromise = loginAsync()

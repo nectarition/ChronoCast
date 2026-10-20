@@ -39,13 +39,6 @@ app.use('*', prisma)
 app.use('*', s3)
 app.use('*', pathNormalization)
 
-app.options('*', c => {
-  c.header('Access-Control-Allow-Origin', '*')
-  c.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-  c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-  return c.text('')
-})
-
 app.get('/', c => c.json({ message: 'Hello, World!' }))
 
 app.route('/', accountsRouter)

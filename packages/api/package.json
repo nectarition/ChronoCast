@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --local-protocol=https --https-cert-path=../../certs/localhost.pem --https-key-path=../../certs/localhost-key.pem",
     "deploy": "prisma generate && wrangler deploy --minify",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings"
   },
