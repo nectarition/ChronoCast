@@ -1,5 +1,6 @@
 import { createBrowserRouter, Outlet, RouterProvider } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
+import WebKitBlurCanceller from './components/Parts/WebKitBlurCanceller'
 import CastPage from './pages/CastPage/CastPage'
 import IndexPage from './pages/IndexPage/IndexPage'
 import LoginPage from './pages/LoginPage/LoginPage'
@@ -41,6 +42,7 @@ const router = createBrowserRouter([
 const App: React.FC = () => {
   return (
     <>
+      <WebKitBlurCanceller />
       <RouterProvider router={router} />
       <Toaster
         position="bottom-right"
