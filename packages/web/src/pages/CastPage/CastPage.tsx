@@ -69,7 +69,8 @@ const CastPage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [editableSchedule, setEditableSchedule] = useState({
     sourceId: 0,
-    scheduledAt: ''
+    scheduledAt: '',
+    seconds: ''
   })
 
   const [selectingScheduleId, setSelectingScheduleId] = useState<number | null>(null)
@@ -136,11 +137,12 @@ const CastPage: React.FC = () => {
     if (!folderKey || !sources || !schedules) return
 
     const now = new Date()
-    if (now.getTime() > new Date(editableSchedule.scheduledAt).getTime()) {
+    const targetTime = new Date(`${editableSchedule.scheduledAt}${editableSchedule.seconds ? `:${editableSchedule.seconds}` : ''}`)
+    if (now.getTime() > targetTime.getTime()) {
       toast.error('過去の時刻は指定できません')
       return
     }
-    else if (schedules.some(s => s.scheduledAt.getTime() === new Date(editableSchedule.scheduledAt).getTime())) {
+    else if (schedules.some(s => s.scheduledAt.getTime() === targetTime.getTime())) {
       toast.error('同じ時刻のスケジュールは追加できません')
       return
     }
@@ -148,7 +150,7 @@ const CastPage: React.FC = () => {
     const schedule: Schedule = {
       ...editableSchedule,
       id: 0,
-      scheduledAt: new Date(editableSchedule.scheduledAt)
+      scheduledAt: targetTime
     }
     const abort = new AbortController()
     setIsProgressForSchedule(true)
@@ -505,6 +507,14 @@ const CastPage: React.FC = () => {
                   placeholder="Scheduled Time"
                   type="datetime-local"
                   value={editableSchedule.scheduledAt} />
+              </FormItem>
+              <FormItem>
+                <FormLabel>秒指定</FormLabel>
+                <FormInput
+                  onChange={e => setEditableSchedule(s => ({ ...s, seconds: e.target.value }))}
+                  placeholder="秒"
+                  type="number"
+                  value={editableSchedule.seconds || ''} />
               </FormItem>
               <FormItem>
                 <FormLabel>音源</FormLabel>
