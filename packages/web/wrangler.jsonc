@@ -2,16 +2,10 @@
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "nct-chronocast-web",
   "pages_build_output_dir": "./dist",
-  "vars": {
-    "NODE_VERSION": "24",
-    "VITE_API_BASE_URL": "/api",
-    "VITE_WEBSOCKET_SERVER_URL": "https://nct-chronocast-api-prod.nctr.workers.dev",
-
-  },
   "services": [
     {
       "binding": "API",
-      "service": "nct-pos-api-staging"
+      "service": "nct-chronocast-api-prod"
     }
   ]
 }
