@@ -15,8 +15,8 @@ const LOGIN_TOKEN_COOKIE_MAX_AGE = 60 * 60 * 24 * 3 // 3 days
 const loginTokenCookieOptions = {
   httpOnly: true,
   secure: true,
-  sameSite: 'None' as const,
-  path: '/accounts',
+  sameSite: 'Lax' as const,
+  path: '/',
   maxAge: LOGIN_TOKEN_COOKIE_MAX_AGE
 }
 

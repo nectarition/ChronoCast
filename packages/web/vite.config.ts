@@ -6,6 +6,12 @@ import { UserConfig } from 'vite'
 export default ({ mode }: { mode: string }): UserConfig => ({
   plugins: [react()],
   server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8788',
+        changeOrigin: true
+      }
+    },
     ...mode !== 'production' && ({
       https: {
         key: fs.readFileSync('../../certs/localhost-key.pem'),
