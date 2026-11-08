@@ -90,7 +90,7 @@ const useCast = (): IUseCast => {
     onStatusChange?: (status: ConnectionStatusType) => void) => {
     if (!apiToken) return null
 
-    const baseURL = new URL(import.meta.env.VITE_API_BASE_URL)
+    const baseURL = new URL(import.meta.env.VITE_WEBSOCKET_SERVER_URL)
     const wsProtocol = baseURL.protocol === 'https:' ? 'wss:' : 'ws:'
     const wsURL = new URL(`/folders/${folderKey}/ws`, baseURL)
     wsURL.protocol = wsProtocol

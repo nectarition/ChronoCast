@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:pages": "wrangler pages dev ./dist --service API=nct-chronocast-api",
     "build": "tsc && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
